@@ -1,0 +1,13 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "liveServer.settings.multiRootWorkspaceName": "film-archive",
+    "liveServer.settings.root": "/",
+    "liveServer.settings.port": 5500,
+    "liveServer.settings.CustomBrowser": "chrome"
+  }
+}
