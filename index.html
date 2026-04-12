@@ -458,19 +458,38 @@
         .auto-fullscreen-hint.show { display: block; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
     </style>
+    <script src="backend/api.js"></script>
 </head>
 <body class="min-h-screen">
     <header class="border-b border-custom px-8 py-4">
         <div class="flex justify-between items-center">
             <span class="serif text-xl text-gray-700 tracking-wide">film manager</span>
-            <button onclick="showOnboarding()" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                </svg>
-                入门
-            </button>
+            <div class="flex items-center gap-2">
+                <button onclick="showOnboarding()" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    入门
+                </button>
+                <button id="auth-button" onclick="AuthUI.showLoginModal()" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    登录
+                </button>
+                <div id="user-info" class="hidden items-center gap-2"></div>
+                <button id="sync-button" onclick="AuthUI.syncFromServer()" class="hidden flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors" title="从服务器同步">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                    同步
+                </button>
+            </div>
         </div>
     </header>
 
@@ -2273,11 +2292,88 @@
             populatePreviewRollSelect();
             renderRecentPhotos();
 
+            // Update auth UI
+            AuthUI.updateUI();
+
             // Show onboarding for first-time users
             if (!localStorage.getItem('film_onboarding_completed')) {
                 showOnboarding();
             }
         });
     </script>
+<!-- Auth Modal -->
+<div id="auth-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" style="background-color: var(--paper-color);">
+        <!-- Header -->
+        <div class="px-8 py-6 border-b" style="border-color: var(--border-color);">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-semibold" style="color: var(--text-color);">
+                    <span id="auth-title">登录</span>
+                </h2>
+                <button onclick="AuthUI.hideModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Login Form -->
+        <div id="login-form" class="p-8">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2" style="color: var(--text-color);">用户名</label>
+                    <input type="text" id="login-username" class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-400" style="border-color: var(--border-color); background: white;" placeholder="输入用户名">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2" style="color: var(--text-color);">密码</label>
+                    <input type="password" id="login-password" class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-400" style="border-color: var(--border-color); background: white;" placeholder="输入密码">
+                </div>
+            </div>
+
+            <button onclick="AuthUI.login()" class="w-full mt-6 py-3 rounded-lg font-medium transition-colors" style="background-color: var(--accent-green); color: white;">
+                登录
+            </button>
+
+            <div class="mt-6 text-center text-sm">
+                <span class="text-gray-500">还没有账号？</span>
+                <button onclick="AuthUI.switchToRegister()" class="ml-1 font-medium hover:underline" style="color: var(--accent-green);">立即注册</button>
+            </div>
+        </div>
+
+        <!-- Register Form -->
+        <div id="register-form" class="p-8 hidden">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2" style="color: var(--text-color);">用户名</label>
+                    <input type="text" id="reg-username" class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-400" style="border-color: var(--border-color); background: white;" placeholder="输入用户名（至少3个字符）">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2" style="color: var(--text-color);">邮箱</label>
+                    <input type="email" id="reg-email" class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-400" style="border-color: var(--border-color); background: white;" placeholder="输入邮箱地址">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2" style="color: var(--text-color);">密码</label>
+                    <input type="password" id="reg-password" class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-400" style="border-color: var(--border-color); background: white;" placeholder="输入密码（至少6个字符）">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2" style="color: var(--text-color);">确认密码</label>
+                    <input type="password" id="reg-password-confirm" class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-400" style="border-color: var(--border-color); background: white;" placeholder="再次输入密码">
+                </div>
+            </div>
+
+            <button onclick="AuthUI.register()" class="w-full mt-6 py-3 rounded-lg font-medium transition-colors" style="background-color: var(--accent-green); color: white;">
+                注册
+            </button>
+
+            <div class="mt-6 text-center text-sm">
+                <span class="text-gray-500">已有账号？</span>
+                <button onclick="AuthUI.switchToLogin()" class="ml-1 font-medium hover:underline" style="color: var(--accent-green);">立即登录</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
