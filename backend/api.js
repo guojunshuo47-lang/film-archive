@@ -9,13 +9,18 @@ function detectApiBaseUrl() {
     const savedUrl = localStorage.getItem('api_base_url');
     if (savedUrl) return savedUrl;
 
-    // 2. 如果页面是通过 HTTP/HTTPS 访问的，尝试推断后端地址
+    // 2. 如果在 GitHub Pages 上，使用 Render 后端
+    if (window.location.hostname.includes('github.io')) {
+        return 'https://film-archive-backend.onrender.com/api';
+    }
+
+    // 3. 如果页面是通过 HTTP/HTTPS 访问的，尝试推断后端地址
     if (window.location.protocol.startsWith('http')) {
         // 同域名不同端口
         return `${window.location.protocol}//${window.location.hostname}:8000/api`;
     }
 
-    // 3. 默认本地开发地址
+    // 4. 默认本地开发地址
     return 'http://localhost:8000/api';
 }
 
