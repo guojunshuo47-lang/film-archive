@@ -1,0 +1,2283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>胶片归档室 - Film Archive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #F7F3E8;
+            --paper-color: #FFFDF7;
+            --text-color: #4A4035;
+            --border-color: #D4C8B8;
+            --accent-green: #7CB342;
+            --hover-bg: #EDE6D6;
+            --warm-shadow: rgba(139, 125, 107, 0.15);
+        }
+        * { box-sizing: border-box; }
+        body {
+            background-color: var(--bg-color);
+            background-image:
+                radial-gradient(ellipse at top left, rgba(255,248,235,0.8) 0%, transparent 50%),
+                radial-gradient(ellipse at bottom right, rgba(255,245,230,0.6) 0%, transparent 50%);
+            color: var(--text-color);
+            font-family: 'ZCOOL XiaoWei', 'Noto Serif SC', serif;
+            margin: 0;
+            min-height: 100vh;
+        }
+        .handwritten { font-family: 'Ma Shan Zheng', cursive; }
+        .serif { font-family: 'ZCOOL XiaoWei', 'Noto Serif SC', serif; }
+        .border-custom { border-color: var(--border-color); }
+        .hover-custom:hover { background-color: var(--hover-bg); }
+        .paper-bg { background-color: var(--paper-color); box-shadow: 0 1px 3px var(--warm-shadow); }
+        .status-dot { width: 8px; height: 8px; background-color: var(--accent-green); border-radius: 50%; display: inline-block; }
+        .section-content { display: none; }
+        .section-content.active { display: block; }
+        .roll-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            background: white;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .roll-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); transform: translateY(-1px); }
+        .roll-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+        .photo-overview-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+        }
+        @media (min-width: 768px) { .photo-overview-container { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); } }
+        @media (min-width: 1200px) { .photo-overview-container { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); } }
+        .photo-thumb {
+            position: relative;
+            aspect-ratio: 3/2;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+            contain: layout style paint;
+        }
+        .photo-thumb:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateY(-2px); }
+        .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity 0.3s; }
+        .photo-thumb img[data-loaded="false"] { opacity: 0; }
+        .photo-thumb img[data-loaded="true"] { opacity: 1; }
+        .photo-thumb .frame-number {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            background: rgba(0,0,0,0.75);
+            color: white;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            pointer-events: none;
+        }
+        .photo-thumb .photo-actions {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+            display: flex;
+            gap: 6px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .photo-thumb:hover .photo-actions { opacity: 1; }
+        .photo-thumb .photo-actions button {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255,255,255,0.95);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+        .photo-thumb .photo-actions button:hover { transform: scale(1.1); }
+        .fullscreen-viewer {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #0a0a0a;
+            z-index: 1000;
+            touch-action: none;
+        }
+        .fullscreen-viewer.active { display: flex; flex-direction: column; }
+        .fullscreen-toolbar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 1002;
+            color: white;
+        }
+        .fullscreen-image-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            cursor: grab;
+        }
+        .fullscreen-image-wrapper.dragging { cursor: grabbing; }
+        .fullscreen-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.1s ease-out;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        .fullscreen-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100px;
+            height: 150px;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 48px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s, background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+        }
+        .fullscreen-viewer:hover .fullscreen-nav { opacity: 0.6; }
+        .fullscreen-nav:hover { opacity: 1 !important; background: rgba(255,255,255,0.1); }
+        .fullscreen-nav.prev { left: 0; justify-content: flex-start; padding-left: 20px; }
+        .fullscreen-nav.next { right: 0; justify-content: flex-end; padding-right: 20px; }
+        .fullscreen-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 24px 30px;
+            background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+            color: white;
+            z-index: 1002;
+        }
+        .fullscreen-hint {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(4px);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.8);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s;
+            z-index: 1001;
+        }
+        .fullscreen-viewer.active .fullscreen-hint { opacity: 1; animation: hintFade 4s forwards; }
+        @keyframes hintFade { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+        .fullscreen-close {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.15);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .fullscreen-close:hover { background: rgba(255,255,255,0.25); }
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 50; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--text-color);
+            color: var(--paper-color);
+            padding: 12px 24px;
+            border-radius: 8px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .grid-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+        .index-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+        .date-group { margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px dashed var(--border-color); }
+        .date-group:last-child { border-bottom: none; }
+        .featured-heart {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 32px;
+            height: 32px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
+            color: #9CA3AF;
+            border: none;
+            z-index: 5;
+        }
+        .featured-heart:hover { transform: scale(1.15); background: rgba(255,255,255,1); }
+        .featured-heart.active {
+            background: linear-gradient(135deg, #FF6B6B, #EE5A6F);
+            color: white;
+            box-shadow: 0 2px 12px rgba(238, 90, 111, 0.4);
+        }
+        .featured-heart svg { transition: transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+        .featured-heart:active svg { transform: scale(0.85); }
+        .featured-heart.active svg { fill: currentColor; }
+
+        .featured-heart-small { width: 24px !important; height: 24px !important; }
+        .featured-heart-small svg { width: 12px !important; height: 12px !important; }
+
+        .featured-heart-fullscreen {
+            width: 48px;
+            height: 48px;
+            color: #9CA3AF;
+            transition: all 0.2s ease;
+        }
+        .featured-heart-fullscreen:hover {
+            transform: scale(1.1);
+        }
+        .featured-heart-fullscreen.active {
+            background: linear-gradient(135deg, #FF6B6B, #EE5A6F);
+            color: white;
+        }
+        .featured-heart-fullscreen.active svg { fill: currentColor; }
+
+        /* Toast notification enhancement */
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(31, 41, 55, 0.95);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 1000;
+            font-size: 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        /* Batch selection styles */
+        .batch-select-checkbox {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            border: 2px solid rgba(255,255,255,0.8);
+            background: rgba(255,255,255,0.9);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            z-index: 5;
+        }
+        .batch-select-checkbox:hover { border-color: #7CB342; }
+        .batch-select-checkbox.selected {
+            background: #7CB342;
+            border-color: #7CB342;
+        }
+        .batch-select-checkbox.selected::after {
+            content: '✓';
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .photo-thumb.batch-mode .batch-select-checkbox { display: flex; }
+        .batch-toolbar {
+            position: sticky;
+            bottom: 20px;
+            background: rgba(31, 41, 55, 0.95);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            margin: 0 auto;
+            max-width: 500px;
+        }
+        .batch-toolbar.active { display: flex; }
+        .stat-card-clickable { cursor: pointer; transition: all 0.2s ease; }
+        .stat-card-clickable:hover { transform: translateY(-2px); box-shadow: 0 4px 12px var(--warm-shadow); }
+
+        /* Film Box Card Style */
+        .film-box-card {
+            background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            border-radius: 12px;
+            padding: 20px 24px;
+            color: white;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            max-width: 280px;
+        }
+        .film-box-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #e94560, #f39422, #e94560);
+        }
+        .film-box-card.kodak { background: linear-gradient(145deg, #1a0a00 0%, #2d1a0a 50%, #1a0a00 100%); }
+        .film-box-card.kodak::before { background: linear-gradient(90deg, #ffb347, #ffcc33, #ffb347); }
+        .film-box-card.fujifilm { background: linear-gradient(145deg, #0a1a0a 0%, #0d2d1a 50%, #0a1a0a 100%); }
+        .film-box-card.fujifilm::before { background: linear-gradient(90deg, #4ade80, #22d3ee, #4ade80); }
+        .film-box-card.ilford { background: linear-gradient(145deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%); }
+        .film-box-card.ilford::before { background: linear-gradient(90deg, #6b7280, #9ca3af, #6b7280); }
+        .film-box-card.digital { background: linear-gradient(145deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%); }
+        .film-box-card.digital::before { background: linear-gradient(90deg, #60a5fa, #a78bfa, #60a5fa); }
+
+        .film-box-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            opacity: 0.8;
+            font-family: 'Courier New', monospace;
+        }
+        .film-box-format {
+            background: rgba(255,255,255,0.15);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .film-box-iso {
+            font-weight: 600;
+        }
+        .film-box-brand {
+            font-size: 14px;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            opacity: 0.6;
+            margin-top: 8px;
+        }
+        .film-box-name {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            margin-top: 4px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .film-box-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 11px;
+            opacity: 0.7;
+        }
+        .tab-btn { transition: all 0.2s ease; }
+        .tab-btn.active { background-color: #E8E4DE; }
+        .form-input { background-color: transparent; border: 1px solid var(--border-color); transition: all 0.2s ease; }
+        .form-input:focus { outline: none; border-color: #9CA3AF; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .auto-fullscreen-hint {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: rgba(124,179,66,0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 10;
+            display: none;
+        }
+        .auto-fullscreen-hint.show { display: block; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="border-b border-custom px-8 py-4">
+        <div class="flex justify-between items-center">
+            <span class="serif text-xl text-gray-700 tracking-wide">film manager</span>
+            <button onclick="showOnboarding()" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                入门
+            </button>
+        </div>
+    </header>
+
+    <main class="flex px-8 py-6 gap-6">
+        <aside class="w-56 flex-shrink-0 space-y-4">
+            <div class="border border-custom rounded-lg overflow-hidden paper-bg">
+                <nav class="flex flex-col text-sm">
+                    <a href="#" class="sidebar-item active px-4 py-3 border-b border-custom/50 hover:bg-[var(--hover-bg)] transition-colors" id="menu-overview" onclick="showSection('overview')">归档概览</a>
+                    <a href="#" class="sidebar-item px-4 py-3 border-b border-custom/50 hover:bg-[var(--hover-bg)] transition-colors" id="menu-scans" onclick="showSection('scans')">胶片扫描档案 <span class="status-dot"></span></a>
+                    <a href="#" class="sidebar-item px-4 py-3 border-b border-custom/50 hover:bg-[var(--hover-bg)] transition-colors" id="menu-works" onclick="showSection('works')">修改作品</a>
+                    <a href="#" class="sidebar-item px-4 py-3 hover:bg-[var(--hover-bg)] transition-colors" id="menu-darkroom" onclick="showSection('darkroom')">暗房</a>
+                </nav>
+            </div>
+            <div class="border border-custom rounded-lg overflow-hidden paper-bg">
+                <nav class="flex flex-col text-sm">
+                    <a href="#" class="sidebar-item px-4 py-3 border-b border-custom/50 hover:bg-[var(--hover-bg)] transition-colors" id="menu-display" onclick="showSection('display')">精选展示</a>
+                    <a href="#" class="sidebar-item px-4 py-3 border-b border-custom/50 hover:bg-[var(--hover-bg)] transition-colors" onclick="showModal('filmDictModal')">胶片字典</a>
+                    <a href="#" class="sidebar-item px-4 py-3 hover:bg-[var(--hover-bg)] transition-colors" onclick="showModal('artistDictModal')">摄影师字典</a>
+                </nav>
+            </div>
+        </aside>
+
+        <section class="flex-1" id="main-content">
+            <!-- Overview Section -->
+            <div class="section-content active" id="section-overview">
+                <div class="border border-custom rounded-xl paper-bg p-6">
+                    <h2 class="handwritten text-2xl text-gray-700 mb-6">归档概览</h2>
+                    <div class="grid grid-cols-4 gap-4 mb-8">
+                        <div class="border border-custom rounded-lg p-4 text-center stat-card-clickable" onclick="showRollsModal()">
+                            <div class="text-3xl font-light text-gray-600" id="stat-rolls">0</div>
+                            <div class="text-sm text-gray-500 mt-1">胶卷总数</div>
+                        </div>
+                        <div class="border border-custom rounded-lg p-4 text-center stat-card-clickable" onclick="showSection('scans')">
+                            <div class="text-3xl font-light text-gray-600" id="stat-scans">0</div>
+                            <div class="text-sm text-gray-500 mt-1">扫描张数</div>
+                        </div>
+                        <div class="border border-custom rounded-lg p-4 text-center stat-card-clickable" onclick="showModal('filmDictModal')">
+                            <div class="text-3xl font-light text-gray-600" id="stat-films">0</div>
+                            <div class="text-sm text-gray-500 mt-1">胶片种类</div>
+                        </div>
+                        <div class="border border-custom rounded-lg p-4 text-center stat-card-clickable" onclick="showModal('artistDictModal')">
+                            <div class="text-3xl font-light text-gray-600" id="stat-artists">0</div>
+                            <div class="text-sm text-gray-500 mt-1">摄影师</div>
+                        </div>
+                    </div>
+
+                    <h3 class="handwritten text-xl text-gray-700 mb-4">最近添加</h3>
+                    <div class="grid-photos" id="recent-photos"></div>
+                </div>
+            </div>
+
+            <!-- Scans Section -->
+            <div class="section-content" id="section-scans">
+                <div class="border border-custom rounded-xl paper-bg p-6">
+                    <h2 class="handwritten text-2xl text-gray-700 mb-6">胶片扫描档案</h2>
+                    <div id="scans-index-view"></div>
+                </div>
+            </div>
+
+            <!-- Display Section -->
+            <div class="section-content" id="section-display">
+                <div class="border border-custom rounded-xl paper-bg p-6">
+                    <h2 class="handwritten text-2xl text-gray-700 mb-6">精选展示</h2>
+                    <div id="featured-display"></div>
+                </div>
+            </div>
+
+            <!-- Works Section -->
+            <div class="section-content active" id="section-works">
+                <div class="flex border border-custom rounded-lg overflow-hidden mb-5 text-sm">
+                    <button class="tab-btn flex-1 py-2.5 text-center" onclick="switchTab('log')" id="tab-log">登记胶卷</button>
+                    <button class="tab-btn flex-1 py-2.5 text-center border-x border-custom" onclick="switchTab('populate')" id="tab-populate">填充胶卷</button>
+                    <button class="tab-btn active flex-1 py-2.5 text-center" onclick="switchTab('edit')" id="tab-edit">照片概览</button>
+                </div>
+
+                <!-- Log a Roll -->
+                <div class="section-content border border-custom rounded-xl paper-bg p-6" id="content-log">
+                    <h2 class="handwritten text-2xl text-gray-700 mb-6">登记新胶卷</h2>
+                    <form id="form-log-roll" class="space-y-4">
+                        <div class="flex items-center gap-4">
+                            <label class="text-sm w-28"><span class="text-red-500">*</span> 胶卷名称:</label>
+                            <input type="text" id="roll-name" required class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg" placeholder="例如：2024年春节胶卷">
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <label class="text-sm w-28">胶片型号:</label>
+                            <select id="roll-film" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg">
+                                <option value="">请选择胶片型号（可选）</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <label class="text-sm w-28">画幅:</label>
+                            <select id="roll-format" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg">
+                                <option value="135">135 / 35mm</option>
+                                <option value="120">120 / 中画幅</option>
+                                <option value="220">220</option>
+                                <option value="4x5">4x5 大画幅</option>
+                                <option value="8x10">8x10 大画幅</option>
+                                <option value="aps">APS-C</option>
+                                <option value="fullframe">全画幅数码</option>
+                                <option value="medium_digital">中画幅数码</option>
+                                <option value="phone">手机</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <label class="text-sm w-28">拍摄设备:</label>
+                            <input type="text" id="roll-camera" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg" placeholder="例如：Leica M6 / iPhone 15 Pro / Sony A7M4（可选）">
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <label class="text-sm w-28">摄影师:</label>
+                            <select id="roll-artist" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg"></select>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <label class="text-sm w-28">拍摄日期:</label>
+                            <input type="date" id="roll-date" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg">
+                        </div>
+                        <div class="flex gap-4">
+                            <label class="text-sm w-28 pt-2">备注:</label>
+                            <textarea id="roll-notes" rows="3" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg resize-none" placeholder="其他备注信息（可选）"></textarea>
+                        </div>
+                        <div class="pt-4 border-t border-custom">
+                            <button type="submit" class="w-full py-2.5 border border-custom rounded text-sm paper-bg hover-custom">保存胶卷</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Populate a Roll -->
+                <div class="section-content border border-custom rounded-xl paper-bg p-6" id="content-populate">
+                    <h2 class="handwritten text-2xl text-gray-700 mb-6">批量上传扫描</h2>
+                    <div class="space-y-4" id="populate-form">
+                        <div class="flex items-center gap-4">
+                            <label class="text-sm w-28">选择胶卷:</label>
+                            <select id="populate-roll" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg">
+                                <option value="">请选择胶卷</option>
+                            </select>
+                        </div>
+                        <div class="border-2 border-dashed border-custom rounded-lg p-8 text-center" id="drop-zone">
+                            <p class="text-gray-500 mb-2">拖拽图片到这里或点击上传</p>
+                            <input type="file" id="populate-files" multiple accept="image/*" class="hidden">
+                            <button onclick="document.getElementById('populate-files').click()" class="px-4 py-2 border border-custom rounded text-sm paper-bg hover-custom">选择文件</button>
+                        </div>
+                        <div id="populate-preview" class="grid-photos hidden"></div>
+                        <div class="pt-4 border-t border-custom">
+                            <button onclick="savePopulateScans()" class="w-full py-2.5 border border-custom rounded text-sm paper-bg hover-custom">保存所有扫描</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Photo Overview -->
+                <div class="section-content active" id="content-edit">
+                    <div class="border border-custom rounded-xl paper-bg p-6 relative">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="handwritten text-2xl text-gray-700">照片概览</h2>
+                            <div class="flex items-center gap-3">
+                                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                                    <input type="checkbox" id="auto-fullscreen" class="w-4 h-4 accent-[var(--accent-green)]">
+                                    <span>自动全屏</span>
+                                </label>
+                                <button onclick="toggleBatchMode()" id="batch-mode-btn" class="px-3 py-2 text-sm border border-custom rounded hover-custom flex items-center gap-2">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/>
+                                    </svg>
+                                    批量删除
+                                </button>
+                                <select id="preview-roll-select" class="form-input px-4 py-2 rounded text-sm paper-bg min-w-[250px]" onchange="onRollSelectChange()">
+                                    <option value="">请选择胶卷</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="auto-fullscreen-hint" class="auto-fullscreen-hint">已自动进入全屏浏览</div>
+
+                        <div id="batch-toolbar" class="batch-toolbar">
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" id="batch-select-all" class="w-5 h-5 rounded accent-[var(--accent-green)]" onchange="toggleSelectAll()">
+                                <span class="text-sm font-medium">全选</span>
+                                <span id="batch-count" class="text-xs text-gray-400">已选 0 张</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button onclick="cancelBatchMode()" class="text-sm text-gray-400 hover:text-white transition-colors">取消</button>
+                                <button onclick="confirmBatchDelete()" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg transition-colors">
+                                    删除选中
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Film Box Style Card -->
+                        <div id="roll-detail-card" class="hidden mb-6">
+                            <div class="film-box-card" id="film-box-visual">
+                                <div class="film-box-header">
+                                    <span class="film-box-format" id="film-box-format">135</span>
+                                    <span class="film-box-iso" id="film-box-iso">ISO 400</span>
+                                </div>
+                                <div class="film-box-brand" id="film-box-brand">KODAK</div>
+                                <div class="film-box-name" id="film-box-name">PORTRA 400</div>
+                                <div class="film-box-meta">
+                                    <span id="film-box-camera">Leica M6</span>
+                                    <span id="film-box-exp">36 EXP</span>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex items-center justify-between px-1">
+                                <h3 id="roll-detail-name" class="text-lg font-medium text-gray-800">Roll Name</h3>
+                                <div class="flex items-center gap-4 text-sm text-gray-500">
+                                    <span id="roll-detail-count">0 张</span>
+                                    <span id="roll-detail-date">--</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="photo-overview-grid" class="photo-overview-container"></div>
+
+                        <div id="photo-overview-empty" class="empty-state py-20">
+                            <p class="text-gray-400">请选择一个胶卷查看照片</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Darkroom Section -->
+            <div class="section-content" id="section-darkroom">
+                <div class="border border-custom rounded-xl paper-bg p-12 text-center">
+                    <div class="mb-6">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto text-gray-400">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                        </svg>
+                    </div>
+                    <h2 class="handwritten text-3xl text-gray-600 mb-4">暗房功能</h2>
+                    <p class="text-xl text-gray-500 mb-2">暂未开放</p>
+                    <p class="text-gray-400">请联系管理员获取访问权限</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Fullscreen Viewer - Enhanced -->
+    <div class="fullscreen-viewer" id="fullscreenViewer">
+        <div class="fullscreen-toolbar">
+            <div class="flex items-center gap-4">
+                <span id="fullscreen-counter" class="text-sm font-medium">1 / 10</span>
+                <span id="fullscreen-film-info" class="text-sm text-gray-400"></span>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="resetFullscreenZoom()" class="fullscreen-close" title="重置缩放 (0)">⟲</button>
+                <button onclick="closeFullscreenViewer()" class="fullscreen-close" title="关闭 (Esc)">✕</button>
+            </div>
+        </div>
+        <div class="fullscreen-image-wrapper" id="fullscreenImageWrapper">
+            <div class="loading-spinner" id="fullscreenLoader"></div>
+            <img id="fullscreenImage" src="" alt="" class="fullscreen-image" draggable="false">
+        </div>
+        <button class="fullscreen-nav prev" id="navPrev" title="上一张 (←)">‹</button>
+        <button class="fullscreen-nav next" id="navNext" title="下一张 (→)">›</button>
+        <div class="fullscreen-info">
+            <h3 id="fullscreen-title" class="handwritten text-xl mb-1"></h3>
+            <p id="fullscreen-meta" class="text-sm text-gray-400"></p>
+        </div>
+        <div class="fullscreen-actions" style="position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; gap: 16px; z-index: 1002;">
+            <button id="fullscreen-favorite" class="w-12 h-12 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-lg transition-all featured-heart-fullscreen" title="收藏">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+            </button>
+            <button id="fullscreen-delete" class="w-12 h-12 rounded-full bg-white/90 hover:bg-red-50 flex items-center justify-center shadow-lg transition-all text-gray-600 hover:text-red-500" title="删除">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/>
+                </svg>
+            </button>
+        </div>
+        <div class="fullscreen-hint">
+            滚轮缩放 · 左键上一张 · 右键下一张 · 0重置 · Esc退出
+        </div>
+    </div>
+
+    <!-- Film Dictionary Modal -->
+    <div class="modal" id="filmDictModal">
+        <div class="paper-bg rounded-xl p-6 w-full max-w-lg mx-4 max-h-[80vh] overflow-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="handwritten text-xl">胶片字典</h3>
+                <button onclick="closeModal('filmDictModal')" class="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <form id="form-add-film" class="flex gap-2 mb-4">
+                <input type="text" id="new-film-name" placeholder="胶片名称" class="form-input flex-1 px-3 py-2 rounded text-sm">
+                <input type="text" id="new-film-iso" placeholder="ISO" class="form-input w-20 px-3 py-2 rounded text-sm">
+                <button type="submit" class="px-4 py-2 border border-custom rounded text-sm paper-bg hover-custom">添加</button>
+            </form>
+            <div id="film-list" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- Artist Dictionary Modal -->
+    <div class="modal" id="artistDictModal">
+        <div class="paper-bg rounded-xl p-6 w-full max-w-lg mx-4 max-h-[80vh] overflow-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="handwritten text-xl">摄影师字典</h3>
+                <button onclick="closeModal('artistDictModal')" class="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <form id="form-add-artist" class="flex gap-2 mb-4">
+                <input type="text" id="new-artist-name" placeholder="摄影师姓名" class="form-input flex-1 px-3 py-2 rounded text-sm">
+                <button type="submit" class="px-4 py-2 border border-custom rounded text-sm paper-bg hover-custom">添加</button>
+            </form>
+            <div id="artist-list" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- Rolls List Modal -->
+    <div class="modal" id="rollsListModal">
+        <div class="paper-bg rounded-xl p-6 w-full max-w-3xl mx-4 max-h-[80vh] overflow-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="handwritten text-xl">胶卷列表</h3>
+                <button onclick="closeModal('rollsListModal')" class="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div id="rolls-list-container" class="space-y-3">
+                <!-- Dynamic content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Onboarding Modal - Apple Style -->
+    <div class="modal" id="onboardingModal">
+        <div class="paper-bg rounded-2xl w-full max-w-2xl mx-4 max-h-[85vh] overflow-hidden shadow-2xl">
+            <div class="relative">
+                <!-- Close button -->
+                <button onclick="closeOnboarding()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors z-10">
+                    ✕
+                </button>
+
+                <!-- Content container -->
+                <div id="onboarding-content" class="p-8">
+                    <!-- Step 1: Welcome -->
+                    <div class="onboarding-step" data-step="1">
+                        <div class="text-center mb-8">
+                            <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
+                                    <circle cx="12" cy="12" r="10" fill="none" stroke="white" stroke-width="2"/>
+                                    <circle cx="12" cy="12" r="4" fill="white"/>
+                                </svg>
+                            </div>
+                            <h2 class="text-3xl font-light text-gray-800 mb-3">欢迎来到胶片归档室</h2>
+                            <p class="text-gray-500 text-lg">记录每一卷胶卷的故事</p>
+                        </div>
+                        <div class="space-y-4 text-gray-600 leading-relaxed">
+                            <p>这是一个专为胶片摄影爱好者设计的管理工具。你可以记录胶卷信息、整理扫描照片、创建精选集。</p>
+                            <p>所有数据都存储在本地，永远不会丢失。</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: How to use -->
+                    <div class="onboarding-step hidden" data-step="2">
+                        <h2 class="text-2xl font-light text-gray-800 mb-6 text-center">使用指南</h2>
+                        <div class="space-y-4">
+                            <div class="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-transparent">
+                                <div class="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center font-semibold flex-shrink-0">1</div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800 mb-1">登记胶卷</h3>
+                                    <p class="text-gray-500 text-sm">只需填写胶卷名称即可创建。可选填胶片型号（51种）、画幅（135/120/数码等）、拍摄设备、摄影师等信息。</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-blue-50 to-transparent">
+                                <div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold flex-shrink-0">2</div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800 mb-1">上传照片</h3>
+                                    <p class="text-gray-500 text-sm">在"填充胶卷"中批量上传照片，支持拖拽。保存后自动跳转到预览页面，无需手动切换。</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-green-50 to-transparent">
+                                <div class="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold flex-shrink-0">3</div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800 mb-1">浏览与管理</h3>
+                                    <p class="text-gray-500 text-sm">照片概览显示胶片盒风格卡片，包含画幅、ISO、设备信息。点击心形收藏，支持批量删除。</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-purple-50 to-transparent">
+                                <div class="w-10 h-10 rounded-full bg-purple-500 text-white flex items-center justify-center font-semibold flex-shrink-0">4</div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800 mb-1">快捷入口</h3>
+                                    <p class="text-gray-500 text-sm">归档概览的统计卡片可点击：胶卷总数→管理胶卷，扫描张数→查看档案，胶片种类→胶片字典。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Features -->
+                    <div class="onboarding-step hidden" data-step="3">
+                        <h2 class="text-2xl font-light text-gray-800 mb-6 text-center">功能亮点</h2>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="p-4 rounded-xl bg-gray-50 text-center">
+                                <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-400 flex items-center justify-center">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                                </div>
+                                <h3 class="font-medium text-gray-800 mb-1">胶片盒卡片</h3>
+                                <p class="text-gray-500 text-xs">显示画幅、ISO、设备</p>
+                            </div>
+                            <div class="p-4 rounded-xl bg-gray-50 text-center">
+                                <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-red-400 to-pink-400 flex items-center justify-center">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
+                                </div>
+                                <h3 class="font-medium text-gray-800 mb-1">批量删除</h3>
+                                <p class="text-gray-500 text-xs">一键管理多张照片</p>
+                            </div>
+                            <div class="p-4 rounded-xl bg-gray-50 text-center">
+                                <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-green-400 to-emerald-400 flex items-center justify-center">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                                </div>
+                                <h3 class="font-medium text-gray-800 mb-1">51种胶片</h3>
+                                <p class="text-gray-500 text-xs">含数码/手机选项</p>
+                            </div>
+                            <div class="p-4 rounded-xl bg-gray-50 text-center">
+                                <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                                </div>
+                                <h3 class="font-medium text-gray-800 mb-1">快捷统计</h3>
+                                <p class="text-gray-500 text-xs">点击数字快速跳转</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="px-8 pb-8 pt-4 border-t border-gray-100">
+                    <div class="flex justify-between items-center">
+                        <div class="flex gap-2">
+                            <span class="w-2 h-2 rounded-full bg-gray-300 onboarding-dot active" data-step="1"></span>
+                            <span class="w-2 h-2 rounded-full bg-gray-300 onboarding-dot" data-step="2"></span>
+                            <span class="w-2 h-2 rounded-full bg-gray-300 onboarding-dot" data-step="3"></span>
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="onboarding-prev" onclick="prevOnboardingStep()" class="px-4 py-2 text-gray-500 hover:text-gray-700 hidden">上一步</button>
+                            <button id="onboarding-next" onclick="nextOnboardingStep()" class="px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors">下一步</button>
+                            <button id="onboarding-finish" onclick="closeOnboarding()" class="px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors hidden">开始使用</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // Film Database - 2024 Updated
+        const defaultFilms = [
+            // Kodak 彩色负片
+            {id: 1, name: '柯达 Kodak Portra 160', iso: '160', brand: 'Kodak', type: 'color'},
+            {id: 2, name: '柯达 Kodak Portra 400', iso: '400', brand: 'Kodak', type: 'color'},
+            {id: 3, name: '柯达 Kodak Portra 800', iso: '800', brand: 'Kodak', type: 'color'},
+            {id: 4, name: '柯达 Kodak Gold 200', iso: '200', brand: 'Kodak', type: 'color'},
+            {id: 5, name: '柯达 Kodak ColorPlus 200', iso: '200', brand: 'Kodak', type: 'color'},
+            {id: 6, name: '柯达 Kodak UltraMax 400', iso: '400', brand: 'Kodak', type: 'color'},
+            {id: 7, name: '柯达 Kodak Ektar 100', iso: '100', brand: 'Kodak', type: 'color'},
+            {id: 26, name: '柯达 Kodak ProImage 100', iso: '100', brand: 'Kodak', type: 'color'},
+            // Kodak 电影卷
+            {id: 50, name: '柯达电影卷 Kodak 5207/250D', iso: '250', brand: 'Kodak', type: 'motion'},
+            {id: 51, name: '柯达电影卷 Kodak 5219/500T', iso: '500', brand: 'Kodak', type: 'motion'},
+            {id: 52, name: '柯达电影卷 Kodak 5213/200T', iso: '200', brand: 'Kodak', type: 'motion'},
+            {id: 53, name: '柯达电影卷 Kodak 5203/50D', iso: '50', brand: 'Kodak', type: 'motion'},
+            {id: 54, name: '柯达黑白电影卷 Kodak 5222', iso: '200', brand: 'Kodak', type: 'motion'},
+            // Kodak 反转片 & 黑白
+            {id: 8, name: '柯达 Kodak Ektachrome E100', iso: '100', brand: 'Kodak', type: 'slide'},
+            {id: 27, name: '柯达 Kodak Ektachrome E100D', iso: '100', brand: 'Kodak', type: 'slide'},
+            {id: 9, name: '柯达 Kodak Tri-X 400', iso: '400', brand: 'Kodak', type: 'bw'},
+            {id: 10, name: '柯达 Kodak T-Max 100', iso: '100', brand: 'Kodak', type: 'bw'},
+            {id: 11, name: '柯达 Kodak T-Max 400', iso: '400', brand: 'Kodak', type: 'bw'},
+            // Fujifilm
+            {id: 12, name: '富士 Fujifilm C200', iso: '200', brand: 'Fujifilm', type: 'color'},
+            {id: 13, name: '富士 Fujifilm Superia X-TRA 400', iso: '400', brand: 'Fujifilm', type: 'color'},
+            {id: 14, name: '富士 Fujifilm Pro 400H', iso: '400', brand: 'Fujifilm', type: 'color'},
+            {id: 15, name: '富士 Fujifilm Fujicolor 100', iso: '100', brand: 'Fujifilm', type: 'color'},
+            {id: 28, name: '富士 Fujifilm 业务卷 400', iso: '400', brand: 'Fujifilm', type: 'color'},
+            // Fujifilm 反转片
+            {id: 16, name: '富士 Fujifilm Velvia 100', iso: '100', brand: 'Fujifilm', type: 'slide'},
+            {id: 29, name: '富士 Fujifilm Provia 100F', iso: '100', brand: 'Fujifilm', type: 'slide'},
+            // Fujifilm 黑白
+            {id: 17, name: '富士 Fujifilm Acros 100 II', iso: '100', brand: 'Fujifilm', type: 'bw'},
+            // Ilford 黑白
+            {id: 18, name: '伊尔福 Ilford HP5 Plus 400', iso: '400', brand: 'Ilford', type: 'bw'},
+            {id: 19, name: '伊尔福 Ilford FP4 Plus 125', iso: '125', brand: 'Ilford', type: 'bw'},
+            {id: 20, name: '伊尔福 Ilford Delta 100', iso: '100', brand: 'Ilford', type: 'bw'},
+            {id: 21, name: '伊尔福 Ilford Delta 400', iso: '400', brand: 'Ilford', type: 'bw'},
+            {id: 22, name: '伊尔福 Ilford Delta 3200', iso: '3200', brand: 'Ilford', type: 'bw'},
+            {id: 30, name: '伊尔福 Ilford PAN 100', iso: '100', brand: 'Ilford', type: 'bw'},
+            {id: 31, name: '伊尔福 Ilford PAN 400', iso: '400', brand: 'Ilford', type: 'bw'},
+            {id: 32, name: '伊尔福 Ilford XP2 Super 400', iso: '400', brand: 'Ilford', type: 'bw'},
+            {id: 33, name: '伊尔福 Ilford Kentmere 100', iso: '100', brand: 'Ilford', type: 'bw'},
+            {id: 34, name: '伊尔福 Ilford Kentmere 400', iso: '400', brand: 'Ilford', type: 'bw'},
+            // CineStill
+            {id: 23, name: 'CineStill 800Tungsten', iso: '800', brand: 'CineStill', type: 'motion'},
+            {id: 24, name: 'CineStill 50Daylight', iso: '50', brand: 'CineStill', type: 'motion'},
+            {id: 35, name: 'CineStill 400D', iso: '400', brand: 'CineStill', type: 'color'},
+            // Lomography
+            {id: 25, name: 'Lomography Color Negative 400', iso: '400', brand: 'Lomography', type: 'color'},
+            {id: 36, name: 'Lomography Color 92', iso: '400', brand: 'Lomography', type: 'color'},
+            {id: 37, name: 'Lomography Berlin Kino 400', iso: '400', brand: 'Lomography', type: 'bw'},
+            // Harman
+            {id: 38, name: 'Harman Phoenix 200', iso: '200', brand: 'Harman', type: 'color'},
+            // Rollei
+            {id: 39, name: '禄来 Rollei RPX 100', iso: '100', brand: 'Rollei', type: 'bw'},
+            {id: 40, name: '禄来 Rollei RPX 400', iso: '400', brand: 'Rollei', type: 'bw'},
+            {id: 41, name: '禄来 Rollei Retro 80S', iso: '80', brand: 'Rollei', type: 'bw'},
+            // Foma
+            {id: 42, name: '福马 Fomapan 100', iso: '100', brand: 'Foma', type: 'bw'},
+            {id: 43, name: '福马 Fomapan 200', iso: '200', brand: 'Foma', type: 'bw'},
+            {id: 44, name: '福马 Fomapan 400', iso: '400', brand: 'Foma', type: 'bw'},
+            // 国产
+            {id: 45, name: '乐凯 Lucky SHD 100', iso: '100', brand: 'Lucky', type: 'bw'},
+            {id: 46, name: '乐凯 Lucky SHD 400', iso: '400', brand: 'Lucky', type: 'bw'},
+            {id: 47, name: '上海 Shanghai GP3 100', iso: '100', brand: 'Shanghai', type: 'bw'},
+            {id: 48, name: '公元 Era 100', iso: '100', brand: 'Era', type: 'bw'},
+            // 数码/手机
+            {id: 100, name: '📱 手机拍摄', iso: '可变', brand: 'Digital', type: 'digital'},
+            {id: 101, name: '📷 数码相机', iso: '可变', brand: 'Digital', type: 'digital'},
+            {id: 102, name: '📷 数码-RAW', iso: '可变', brand: 'Digital', type: 'digital'},
+        ];
+
+        // State Management
+        const storage = {
+            rolls: JSON.parse(localStorage.getItem('film_rolls') || '[]'),
+            scans: JSON.parse(localStorage.getItem('film_scans') || '[]'),
+            films: JSON.parse(localStorage.getItem('film_types') || JSON.stringify(defaultFilms)),
+            artists: JSON.parse(localStorage.getItem('film_artists') || '[{"id":1,"name":"我"}]'),
+            featured: JSON.parse(localStorage.getItem('film_featured') || '[]')
+        };
+
+        // DOM Cache
+        const DOM = {};
+
+        // Fullscreen State
+        const fsState = {
+            currentIndex: 0,
+            scale: 1,
+            translateX: 0,
+            translateY: 0,
+            isDragging: false,
+            dragStartX: 0,
+            dragStartY: 0,
+            scans: []
+        };
+
+        // Initialize DOM cache
+        function initDOM() {
+            const ids = [
+                'stat-rolls', 'stat-scans', 'stat-films', 'stat-artists',
+                'recent-photos', 'scans-index-view',
+                'featured-display', 'preview-roll-select', 'roll-detail-card',
+                'roll-detail-name', 'roll-detail-count',
+                'roll-detail-date', 'photo-overview-grid', 'photo-overview-empty',
+                'fullscreenViewer', 'fullscreenImage', 'fullscreenImageWrapper',
+                'fullscreenLoader', 'fullscreen-counter', 'fullscreen-film-info',
+                'fullscreen-title', 'fullscreen-meta', 'toast', 'auto-fullscreen',
+                'auto-fullscreen-hint', 'populate-roll', 'roll-film', 'roll-artist',
+                'film-list', 'artist-list', 'populate-preview', 'drop-zone', 'roll-format', 'roll-camera'
+            ];
+            ids.forEach(id => DOM[id] = document.getElementById(id));
+        }
+
+        // Utility Functions
+        const debounce = (fn, delay) => {
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn(...args), delay);
+            };
+        };
+
+        const throttle = (fn, limit) => {
+            let inThrottle;
+            return (...args) => {
+                if (!inThrottle) {
+                    fn(...args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            };
+        };
+
+        function saveStorage() {
+            localStorage.setItem('film_rolls', JSON.stringify(storage.rolls));
+            localStorage.setItem('film_scans', JSON.stringify(storage.scans));
+            localStorage.setItem('film_types', JSON.stringify(storage.films));
+            localStorage.setItem('film_artists', JSON.stringify(storage.artists));
+            localStorage.setItem('film_featured', JSON.stringify(storage.featured));
+        }
+
+        function getFilmName(filmId) {
+            const film = storage.films.find(f => f.id == filmId);
+            return film ? film.name : '未知胶片';
+        }
+
+        function isFeatured(scanId) {
+            return storage.featured.includes(scanId);
+        }
+
+        function toggleFeatured(scanId, event) {
+            if (event) event.stopPropagation();
+
+            const index = storage.featured.indexOf(scanId);
+            if (index > -1) {
+                storage.featured.splice(index, 1);
+                showToast('已取消精选');
+            } else {
+                storage.featured.push(scanId);
+                showToast('已添加精选');
+            }
+            saveStorage();
+            updateStats();
+        }
+
+        function showToast(message) {
+            const toast = DOM.toast;
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Navigation
+        function showSection(section) {
+            document.querySelectorAll('.section-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+
+            const sectionMap = {
+                overview: () => {
+                    document.getElementById('section-overview').classList.add('active');
+                    document.getElementById('menu-overview').classList.add('active');
+                    updateStats();
+                    renderRecentPhotos();
+                },
+                scans: () => {
+                    document.getElementById('section-scans').classList.add('active');
+                    document.getElementById('menu-scans').classList.add('active');
+                    renderScansList();
+                },
+                works: () => {
+                    document.getElementById('section-works').classList.add('active');
+                    document.getElementById('menu-works').classList.add('active');
+                    populateSelects();
+                    populatePreviewRollSelect();
+                    renderPhotoOverview();
+                },
+                darkroom: () => {
+                    document.getElementById('section-darkroom').classList.add('active');
+                    document.getElementById('menu-darkroom').classList.add('active');
+                },
+                display: () => {
+                    document.getElementById('section-display').classList.add('active');
+                    document.getElementById('menu-display').classList.add('active');
+                    renderFeaturedDisplay();
+                }
+            };
+
+            if (sectionMap[section]) sectionMap[section]();
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#section-works > .section-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            document.getElementById(`content-${tab}`).classList.add('active');
+
+            if (tab === 'edit') {
+                populatePreviewRollSelect();
+            }
+        }
+
+        // Statistics
+        function updateStats() {
+            DOM['stat-rolls'].textContent = storage.rolls.length;
+            DOM['stat-scans'].textContent = storage.scans.length;
+            DOM['stat-films'].textContent = storage.films.length;
+            DOM['stat-artists'].textContent = storage.artists.length;
+        }
+
+        function deleteRoll(rollId) {
+            const roll = storage.rolls.find(r => r.id === rollId);
+            if (!roll) return;
+
+            const scanCount = storage.scans.filter(s => s.rollId == rollId).length;
+            let msg = `确定要删除胶卷 "${roll.name}" 吗？`;
+            if (scanCount > 0) msg += `\n\n警告: 此胶卷包含 ${scanCount} 张扫描，删除后这些扫描也会被删除！`;
+
+            if (confirm(msg)) {
+                storage.scans.filter(s => s.rollId == rollId).forEach(scan => {
+                    const idx = storage.featured.indexOf(scan.id);
+                    if (idx > -1) storage.featured.splice(idx, 1);
+                });
+
+                storage.scans = storage.scans.filter(s => s.rollId != rollId);
+                storage.rolls = storage.rolls.filter(r => r.id !== rollId);
+                saveStorage();
+                updateStats();
+                renderRollsList();
+                renderRecentPhotos();
+                populateSelects();
+                showToast('胶卷已删除');
+            }
+        }
+
+        function editRoll(rollId) {
+            const roll = storage.rolls.find(r => r.id === rollId);
+            if (!roll) return;
+
+            const newName = prompt('修改胶卷名称:', roll.name);
+            if (newName === null) return;
+            const trimmed = newName.trim();
+            if (!trimmed) { showToast('名称不能为空'); return; }
+
+            const newCamera = prompt('修改拍摄设备 (可选):', roll.camera || '');
+            if (newCamera === null) return;
+
+            const newNotes = prompt('修改备注 (可选):', roll.notes || '');
+            if (newNotes === null) return;
+
+            roll.name = trimmed;
+            roll.camera = newCamera.trim();
+            roll.notes = newNotes.trim();
+            saveStorage();
+            renderRollsList();
+            populateSelects();
+            showToast('胶卷信息已更新');
+        }
+
+        // Photo Overview with Lazy Loading
+        function populatePreviewRollSelect() {
+            const select = DOM['preview-roll-select'];
+            const rollsWithScans = storage.rolls.filter(roll =>
+                storage.scans.some(s => s.rollId == roll.id && s.active && s.imageData)
+            );
+
+            let html = '<option value="">请选择胶卷</option>';
+            rollsWithScans.forEach(roll => {
+                const count = storage.scans.filter(s => s.rollId == roll.id).length;
+                html += `<option value="${roll.id}">${roll.name} (${count}张)</option>`;
+            });
+            select.innerHTML = html;
+        }
+
+        function onRollSelectChange() {
+            renderPhotoOverview();
+
+            // Auto fullscreen if enabled
+            const autoFullscreen = DOM['auto-fullscreen'].checked;
+            const rollId = DOM['preview-roll-select'].value;
+
+            if (autoFullscreen && rollId) {
+                const scans = storage.scans
+                    .filter(s => s.rollId == rollId && s.active && s.imageData)
+                    .sort((a, b) => (a.index || 0) - (b.index || 0));
+
+                if (scans.length > 0) {
+                    fsState.scans = scans;
+                    const hint = DOM['auto-fullscreen-hint'];
+                    hint.classList.add('show');
+                    setTimeout(() => hint.classList.remove('show'), 2000);
+
+                    // Small delay to let user see the grid first
+                    setTimeout(() => {
+                        openFullscreenViewer(scans[0].id);
+                    }, 300);
+                }
+            }
+        }
+
+        function renderPhotoOverview() {
+            const grid = DOM['photo-overview-grid'];
+            const emptyState = DOM['photo-overview-empty'];
+            const rollCard = DOM['roll-detail-card'];
+            const select = DOM['preview-roll-select'];
+
+            const rollId = select.value;
+            if (!rollId) {
+                grid.innerHTML = '';
+                rollCard.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                emptyState.querySelector('p').textContent = '请选择一个胶卷查看照片';
+                return;
+            }
+
+            const roll = storage.rolls.find(r => r.id == rollId);
+            if (!roll) return;
+
+            const scans = storage.scans
+                .filter(s => s.rollId == rollId && s.active && s.imageData)
+                .sort((a, b) => (a.index || 0) - (b.index || 0));
+
+            // Update roll card - Film Box Style
+            rollCard.classList.remove('hidden');
+            const film = storage.films.find(f => f.id == roll.filmId);
+            const filmBox = document.getElementById('film-box-visual');
+
+            // Set brand-specific styling
+            filmBox.className = 'film-box-card';
+            if (film) {
+                if (film.brand === 'Kodak') filmBox.classList.add('kodak');
+                else if (film.brand === 'Fujifilm') filmBox.classList.add('fujifilm');
+                else if (film.brand === 'Ilford') filmBox.classList.add('ilford');
+                else if (film.type === 'digital') filmBox.classList.add('digital');
+            }
+
+            // Update film box content
+            const formatLabels = {
+                '135': '135 / 35mm',
+                '120': '120 / MF',
+                '220': '220',
+                '4x5': '4×5 LF',
+                '8x10': '8×10 LF',
+                'aps': 'APS-C',
+                'fullframe': 'Full Frame',
+                'medium_digital': 'MF Digital',
+                'phone': 'Mobile'
+            };
+            document.getElementById('film-box-format').textContent = formatLabels[roll.format] || roll.format || '135';
+            document.getElementById('film-box-iso').textContent = film ? `ISO ${film.iso}` : 'ISO -';
+            document.getElementById('film-box-brand').textContent = film ? film.brand.toUpperCase() : (roll.format === 'phone' ? 'MOBILE' : 'FILM');
+            document.getElementById('film-box-name').textContent = film ? film.name.split(' ').pop().substring(0, 12).toUpperCase() : 'UNKNOWN';
+            document.getElementById('film-box-camera').textContent = roll.camera || '未知设备';
+            document.getElementById('film-box-exp').textContent = `${scans.length} EXP`;
+
+            DOM['roll-detail-name'].textContent = roll.name;
+            DOM['roll-detail-count'].textContent = `${scans.length} 张`;
+            DOM['roll-detail-date'].textContent = roll.date
+                ? `拍摄于 ${new Date(roll.date).toLocaleDateString('zh-CN')}`
+                : '未设定日期';
+
+            if (scans.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                emptyState.querySelector('p').textContent = '此胶卷暂无照片';
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            fsState.scans = scans;
+
+            // Use DocumentFragment for better performance
+            const fragment = document.createDocumentFragment();
+
+            scans.forEach((scan, index) => {
+                const featured = isFeatured(scan.id);
+                const isSelected = selectedScans.has(scan.id);
+                const thumb = document.createElement('div');
+                thumb.className = 'photo-thumb';
+                thumb.innerHTML = `
+                    ${batchMode ? `<div class="batch-select-checkbox ${isSelected ? 'selected' : ''}" data-id="${scan.id}"></div>` : ''}
+                    <img data-src="${scan.imageData}" alt="" loading="lazy" data-loaded="false">
+                    <span class="frame-number">#${String(scan.index || index + 1).padStart(2, '0')}</span>
+                    <div class="photo-actions" style="${batchMode ? 'display: none !important;' : ''}">
+                        <button class="btn-featured ${featured ? 'active' : ''}" data-id="${scan.id}" title="${featured ? '取消精选' : '添加精选'}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="${featured ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                            </svg>
+                        </button>
+                        <button class="btn-delete" data-id="${scan.id}" title="删除">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+
+                // Lazy load image
+                const img = thumb.querySelector('img');
+                img.onload = () => img.setAttribute('data-loaded', 'true');
+                img.src = img.dataset.src;
+
+                // Click to open fullscreen
+                thumb.addEventListener('click', (e) => {
+                    if (!e.target.closest('.photo-actions')) {
+                        openFullscreenViewer(scan.id);
+                    }
+                });
+
+                fragment.appendChild(thumb);
+            });
+
+            grid.innerHTML = '';
+            grid.appendChild(fragment);
+
+            // Event delegation for action buttons
+            grid.addEventListener('click', (e) => {
+                // Handle batch selection checkbox
+                const checkbox = e.target.closest('.batch-select-checkbox');
+                if (checkbox) {
+                    const scanId = parseInt(checkbox.dataset.id);
+                    if (selectedScans.has(scanId)) {
+                        selectedScans.delete(scanId);
+                        checkbox.classList.remove('selected');
+                    } else {
+                        selectedScans.add(scanId);
+                        checkbox.classList.add('selected');
+                    }
+                    updateBatchCount();
+                    return;
+                }
+
+                const btn = e.target.closest('button');
+                if (!btn) return;
+
+                const scanId = parseInt(btn.dataset.id);
+                if (btn.classList.contains('btn-featured')) {
+                    const wasFeatured = isFeatured(scanId);
+                    toggleFeatured(scanId, null);
+                    // Visual feedback without full re-render
+                    btn.classList.toggle('active', !wasFeatured);
+                    btn.title = wasFeatured ? '添加精选' : '取消精选';
+                    btn.querySelector('svg').setAttribute('fill', wasFeatured ? 'none' : 'currentColor');
+                    showToast(wasFeatured ? '已取消精选' : '已添加精选');
+                } else if (btn.classList.contains('btn-delete')) {
+                    deleteOverviewScan(scanId);
+                }
+            });
+        }
+
+        function deleteOverviewScan(scanId) {
+            if (!confirm('确定要删除这张照片吗？')) return;
+
+            storage.scans = storage.scans.filter(s => s.id !== scanId);
+            const idx = storage.featured.indexOf(scanId);
+            if (idx > -1) storage.featured.splice(idx, 1);
+
+            saveStorage();
+            renderPhotoOverview();
+            updateStats();
+            renderRecentPhotos();
+            showToast('照片已删除');
+        }
+
+        // Fullscreen Viewer - Optimized
+        function openFullscreenViewer(scanId) {
+            const index = fsState.scans.findIndex(s => s.id === scanId);
+            if (index === -1) return;
+
+            fsState.currentIndex = index;
+            fsState.scale = 1;
+            fsState.translateX = 0;
+            fsState.translateY = 0;
+            fsState.isDragging = false;
+
+            DOM['fullscreenViewer'].classList.add('active');
+            document.body.style.overflow = 'hidden';
+
+            loadFullscreenImage();
+            setupFullscreenEvents();
+        }
+
+        function closeFullscreenViewer() {
+            DOM['fullscreenViewer'].classList.remove('active');
+            document.body.style.overflow = '';
+            removeFullscreenEvents();
+        }
+
+        function loadFullscreenImage() {
+            const scan = fsState.scans[fsState.currentIndex];
+            if (!scan) return;
+
+            const roll = storage.rolls.find(r => r.id == scan.rollId);
+            const artist = storage.artists.find(a => a.id == scan.authorId);
+
+            // Show loader
+            DOM['fullscreenLoader'].style.display = 'block';
+            DOM['fullscreenImage'].style.opacity = '0';
+
+            const img = DOM['fullscreenImage'];
+            img.onload = () => {
+                DOM['fullscreenLoader'].style.display = 'none';
+                img.style.opacity = '1';
+            };
+            img.src = scan.imageData;
+
+            DOM['fullscreen-counter'].textContent = `${fsState.currentIndex + 1} / ${fsState.scans.length}`;
+            DOM['fullscreen-film-info'].textContent = roll ? roll.name : '';
+            DOM['fullscreen-title'].textContent = scan.title || '无标题';
+            DOM['fullscreen-meta'].textContent = `${getFilmName(roll?.filmId)} · ${scan.date || '未知日期'} · ${artist?.name || '未知摄影师'}`;
+
+            updateFullscreenTransform();
+            updateFullscreenFavoriteButton();
+        }
+
+        function navigateFullscreen(direction) {
+            const newIndex = fsState.currentIndex + direction;
+            if (newIndex < 0 || newIndex >= fsState.scans.length) return;
+
+            fsState.currentIndex = newIndex;
+            fsState.scale = 1;
+            fsState.translateX = 0;
+            fsState.translateY = 0;
+
+            loadFullscreenImage();
+        }
+
+        function resetFullscreenZoom() {
+            fsState.scale = 1;
+            fsState.translateX = 0;
+            fsState.translateY = 0;
+            updateFullscreenTransform();
+        }
+
+        function updateFullscreenTransform() {
+            DOM['fullscreenImage'].style.transform =
+                `translate(${fsState.translateX}px, ${fsState.translateY}px) scale(${fsState.scale})`;
+        }
+
+        // Fullscreen Event Handlers
+        function setupFullscreenEvents() {
+            const wrapper = DOM['fullscreenImageWrapper'];
+
+            // Mouse events for navigation and zoom
+            wrapper.addEventListener('click', handleFullscreenClick);
+            wrapper.addEventListener('contextmenu', handleFullscreenRightClick);
+            wrapper.addEventListener('wheel', handleFullscreenWheel, { passive: false });
+            wrapper.addEventListener('mousedown', handleFullscreenMouseDown);
+            document.addEventListener('mousemove', handleFullscreenMouseMove);
+            document.addEventListener('mouseup', handleFullscreenMouseUp);
+            document.addEventListener('keydown', handleFullscreenKeyDown);
+
+            // Navigation buttons
+            document.getElementById('navPrev').addEventListener('click', (e) => {
+                e.stopPropagation();
+                navigateFullscreen(-1);
+            });
+            document.getElementById('navNext').addEventListener('click', (e) => {
+                e.stopPropagation();
+                navigateFullscreen(1);
+            });
+
+            // Favorite button
+            document.getElementById('fullscreen-favorite').addEventListener('click', handleFullscreenFavorite);
+
+            // Delete button
+            document.getElementById('fullscreen-delete').addEventListener('click', handleFullscreenDelete);
+
+            // Update favorite button state
+            updateFullscreenFavoriteButton();
+        }
+
+        function removeFullscreenEvents() {
+            const wrapper = DOM['fullscreenImageWrapper'];
+            wrapper.removeEventListener('click', handleFullscreenClick);
+            wrapper.removeEventListener('contextmenu', handleFullscreenRightClick);
+            wrapper.removeEventListener('wheel', handleFullscreenWheel);
+            wrapper.removeEventListener('mousedown', handleFullscreenMouseDown);
+            document.removeEventListener('mousemove', handleFullscreenMouseMove);
+            document.removeEventListener('mouseup', handleFullscreenMouseUp);
+            document.removeEventListener('keydown', handleFullscreenKeyDown);
+
+            const favBtn = document.getElementById('fullscreen-favorite');
+            const delBtn = document.getElementById('fullscreen-delete');
+            if (favBtn) favBtn.removeEventListener('click', handleFullscreenFavorite);
+            if (delBtn) delBtn.removeEventListener('click', handleFullscreenDelete);
+        }
+
+        function updateFullscreenFavoriteButton() {
+            const scan = fsState.scans[fsState.currentIndex];
+            if (!scan) return;
+            const btn = document.getElementById('fullscreen-favorite');
+            const featured = isFeatured(scan.id);
+            btn.classList.toggle('active', featured);
+            btn.querySelector('svg').setAttribute('fill', featured ? 'currentColor' : 'none');
+            btn.title = featured ? '取消收藏' : '添加收藏';
+        }
+
+        function handleFullscreenFavorite(e) {
+            e.stopPropagation();
+            const scan = fsState.scans[fsState.currentIndex];
+            if (!scan) return;
+            const wasFeatured = isFeatured(scan.id);
+            toggleFeatured(scan.id, null);
+            updateFullscreenFavoriteButton();
+            updateStats();
+            renderRecentPhotos();
+            showToast(wasFeatured ? '已取消精选' : '已添加精选');
+        }
+
+        function handleFullscreenDelete(e) {
+            e.stopPropagation();
+            const scan = fsState.scans[fsState.currentIndex];
+            if (!scan) return;
+            if (!confirm('确定要删除这张照片吗？')) return;
+
+            // Remove from storage
+            storage.scans = storage.scans.filter(s => s.id !== scan.id);
+            const idx = storage.featured.indexOf(scan.id);
+            if (idx > -1) storage.featured.splice(idx, 1);
+            saveStorage();
+
+            // Remove from current scans array
+            fsState.scans.splice(fsState.currentIndex, 1);
+
+            if (fsState.scans.length === 0) {
+                closeFullscreenViewer();
+                renderPhotoOverview();
+            } else {
+                if (fsState.currentIndex >= fsState.scans.length) {
+                    fsState.currentIndex = fsState.scans.length - 1;
+                }
+                loadFullscreenImage();
+            }
+
+            updateStats();
+            renderRecentPhotos();
+            renderPhotoOverview();
+            showToast('照片已删除');
+        }
+
+        function handleFullscreenClick(e) {
+            if (e.button !== 0 || fsState.scale > 1 || fsState.isDragging) return;
+
+            const rect = DOM['fullscreenImageWrapper'].getBoundingClientRect();
+            const x = e.clientX - rect.left;
+
+            if (x < rect.width * 0.3) {
+                navigateFullscreen(-1);
+            } else if (x > rect.width * 0.7) {
+                navigateFullscreen(1);
+            }
+        }
+
+        function handleFullscreenRightClick(e) {
+            e.preventDefault();
+            if (fsState.scale > 1) return;
+            navigateFullscreen(1);
+        }
+
+        const handleFullscreenWheel = throttle((e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            fsState.scale = Math.max(0.5, Math.min(5, fsState.scale * delta));
+            updateFullscreenTransform();
+        }, 50);
+
+        function handleFullscreenMouseDown(e) {
+            if (e.button !== 0 || fsState.scale <= 1) return;
+            fsState.isDragging = true;
+            fsState.dragStartX = e.clientX - fsState.translateX;
+            fsState.dragStartY = e.clientY - fsState.translateY;
+            DOM['fullscreenImageWrapper'].classList.add('dragging');
+        }
+
+        function handleFullscreenMouseMove(e) {
+            if (!fsState.isDragging) return;
+            fsState.translateX = e.clientX - fsState.dragStartX;
+            fsState.translateY = e.clientY - fsState.dragStartY;
+            updateFullscreenTransform();
+        }
+
+        function handleFullscreenMouseUp() {
+            fsState.isDragging = false;
+            DOM['fullscreenImageWrapper'].classList.remove('dragging');
+        }
+
+        function handleFullscreenKeyDown(e) {
+            switch(e.key) {
+                case 'ArrowLeft': navigateFullscreen(-1); break;
+                case 'ArrowRight': navigateFullscreen(1); break;
+                case 'Escape': closeFullscreenViewer(); break;
+                case '0': resetFullscreenZoom(); break;
+            }
+        }
+
+        // Other render functions
+        function renderRecentPhotos() {
+            const container = DOM['recent-photos'];
+            const recent = storage.scans
+                .filter(s => s.active && s.imageData)
+                .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+                .slice(0, 6);
+
+            if (recent.length === 0) {
+                container.innerHTML = '<div class="empty-state col-span-full">暂无扫描</div>';
+                return;
+            }
+
+            container.innerHTML = recent.map(s => {
+                const featured = isFeatured(s.id);
+                const onclick = `const btn=this; const was=this.classList.contains('active'); toggleFeatured(${s.id}, event); this.classList.toggle('active', !was); this.querySelector('svg').setAttribute('fill', was?'none':'currentColor'); this.title=was?'添加精选':'取消精选'; showToast(was?'已取消精选':'已添加精选'); setTimeout(()=>renderRecentPhotos(), 300);`;
+                return `
+                <div class="relative group">
+                    <div class="cursor-pointer" onclick="openFullscreenById(${s.id})">
+                        <img src="${s.imageData}" class="thumbnail rounded-lg border border-custom" loading="lazy">
+                    </div>
+                    <button class="featured-heart ${featured ? 'active' : ''}" onclick="${onclick}" title="${featured ? '取消精选' : '添加精选'}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="${featured ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </svg>
+                    </button>
+                </div>
+            `}).join('');
+        }
+
+        function openFullscreenById(scanId) {
+            const allScans = storage.scans.filter(s => s.active && s.imageData);
+            fsState.scans = allScans;
+            openFullscreenViewer(scanId);
+        }
+
+        function renderScansList() {
+            const container = DOM['scans-index-view'];
+            const activeScans = storage.scans
+                .filter(s => s.active && s.imageData)
+                .sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0));
+
+            if (activeScans.length === 0) {
+                container.innerHTML = '<div class="empty-state py-20">暂无扫描</div>';
+                return;
+            }
+
+            const grouped = {};
+            activeScans.forEach(scan => {
+                const dateStr = scan.date || new Date(scan.createdAt).toISOString().split('T')[0];
+                if (!grouped[dateStr]) grouped[dateStr] = [];
+                grouped[dateStr].push(scan);
+            });
+
+            const sortedDates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
+
+            container.innerHTML = sortedDates.map(dateStr => {
+                const scans = grouped[dateStr];
+                const dateObj = new Date(dateStr);
+                const dateDisplay = dateObj.toLocaleDateString('zh-CN', {
+                    year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
+                });
+
+                return `
+                    <div class="date-group">
+                        <div class="flex items-center gap-3 mb-4 pb-2 border-b border-custom">
+                            <span class="handwritten text-xl">${dateDisplay}</span>
+                            <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">${scans.length} 张</span>
+                        </div>
+                        <div class="index-grid">
+                            ${scans.map(scan => {
+                                const roll = storage.rolls.find(r => r.id == scan.rollId);
+                                const featured = isFeatured(scan.id);
+                                return `
+                                <div class="relative bg-white border border-custom rounded overflow-hidden cursor-pointer scan-item" data-id="${scan.id}">
+                                    <span class="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded z-10">#${String(scan.index).padStart(2, '0')}</span>
+                                    <img src="${scan.imageData}" alt="" class="w-full aspect-[3/2] object-cover" loading="lazy" onclick="openFullscreenById(${scan.id})">
+                                    <div class="flex justify-between items-center p-2 bg-gray-50 text-xs">
+                                        <span class="text-gray-600 font-mono">${String(scan.id).slice(-3)}</span>
+                                        <span class="text-gray-400 truncate max-w-[80px]">${getFilmName(roll?.filmId).split(' ').pop()}</span>
+                                    </div>
+                                    <button class="featured-heart featured-heart-small ${featured ? 'active' : ''}" style="top: 4px; right: 4px; width: 24px; height: 24px;" onclick="const btn=this; const was=this.classList.contains('active'); event.stopPropagation(); toggleFeatured(${scan.id}, null); this.classList.toggle('active', !was); this.querySelector('svg').setAttribute('fill', was?'none':'currentColor'); showToast(was?'已取消精选':'已添加精选'); setTimeout(()=>renderScansList(), 300);" title="${featured ? '取消精选' : '添加精选'}">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="${featured ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderFeaturedDisplay() {
+            const container = DOM['featured-display'];
+
+            const validFeatured = storage.featured.filter(id =>
+                storage.scans.some(s => s.id === id && s.active && s.imageData)
+            );
+            if (validFeatured.length !== storage.featured.length) {
+                storage.featured = validFeatured;
+                saveStorage();
+            }
+
+            const featuredScans = storage.scans
+                .filter(s => s.active && s.imageData && isFeatured(s.id))
+                .sort((a, b) => storage.featured.indexOf(a.id) - storage.featured.indexOf(b.id));
+
+            if (featuredScans.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state py-20">
+                        <p class="text-gray-400">暂无精选照片</p>
+                        <p class="text-sm text-gray-300 mt-2">在照片概览中点击心形图标添加精选</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const hero = featuredScans[0];
+            const heroRoll = storage.rolls.find(r => r.id == hero.rollId);
+
+            let html = `
+                <div class="relative h-[400px] mb-6 rounded-xl overflow-hidden">
+                    <img src="${hero.imageData}" alt="" class="w-full h-full object-cover">
+                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
+                        <h3 class="handwritten text-2xl text-white">${hero.title || '无标题'}</h3>
+                        <p class="text-white/80 text-sm mt-1">${getFilmName(heroRoll?.filmId)} · ${heroRoll?.name || '未知胶卷'}</p>
+                    </div>
+                    <button class="featured-heart active" style="top: 16px; right: 16px;" onclick="const btn=this; event.stopPropagation(); toggleFeatured(${hero.id}, null); showToast('已取消精选'); setTimeout(()=>renderFeaturedDisplay(), 300);" title="取消精选">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+
+            if (featuredScans.length > 1) {
+                html += '<div class="grid grid-cols-3 gap-3">';
+                html += featuredScans.slice(1).map(scan => `
+                    <div class="relative aspect-square cursor-pointer rounded-lg overflow-hidden" onclick="openFullscreenById(${scan.id})">
+                        <img src="${scan.imageData}" alt="" class="w-full h-full object-cover" loading="lazy">
+                        <button class="featured-heart active" style="top: 8px; right: 8px;" onclick="event.stopPropagation(); toggleFeatured(${scan.id}, null); showToast('已取消精选'); setTimeout(()=>renderFeaturedDisplay(), 300);" title="取消精选">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                            </svg>
+                        </button>
+                    </div>
+                `).join('');
+                html += '</div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        // Form handling
+        function populateSelects() {
+            const rollSelect = DOM['populate-roll'];
+            if (rollSelect) {
+                if (storage.rolls.length === 0) {
+                    rollSelect.innerHTML = '<option value="">请先登记胶卷</option>';
+                    rollSelect.disabled = true;
+                } else {
+                    rollSelect.disabled = false;
+                    rollSelect.innerHTML = '<option value="">请选择胶卷</option>' +
+                        storage.rolls.map(r => `<option value="${r.id}">${r.name} - ${getFilmName(r.filmId)}</option>`).join('');
+                }
+            }
+
+            const filmSelect = DOM['roll-film'];
+            if (filmSelect) {
+                filmSelect.innerHTML = '<option value="">请选择胶片型号（可选）</option>' +
+                    storage.films.map(f => `<option value="${f.id}">${f.name} ${f.iso ? 'ISO' + f.iso : ''}</option>`).join('');
+            }
+
+            const artistSelect = DOM['roll-artist'];
+            if (artistSelect) {
+                artistSelect.innerHTML = storage.artists.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+            }
+        }
+
+        // File upload
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('populate-files');
+
+        if (dropZone) {
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-gray-400');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('border-gray-400');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-gray-400');
+                handleFiles(e.dataTransfer.files);
+            });
+        }
+
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+        }
+
+        const objectURLs = [];
+        let currentPopulateFiles = [];
+
+        function handleFiles(files) {
+            objectURLs.forEach(url => URL.revokeObjectURL(url));
+            objectURLs.length = 0;
+
+            currentPopulateFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+            const preview = DOM['populate-preview'];
+
+            preview.innerHTML = currentPopulateFiles.map((file, i) => {
+                const url = URL.createObjectURL(file);
+                objectURLs.push(url);
+                return `
+                <div class="relative">
+                    <img src="${url}" class="thumbnail rounded-lg border border-custom">
+                    <button onclick="removePopulateFile(${i})" class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs">✕</button>
+                </div>
+            `}).join('');
+            preview.classList.remove('hidden');
+        }
+
+        function removePopulateFile(index) {
+            if (objectURLs[index]) {
+                URL.revokeObjectURL(objectURLs[index]);
+                objectURLs.splice(index, 1);
+            }
+            currentPopulateFiles.splice(index, 1);
+            const preview = DOM['populate-preview'];
+
+            if (currentPopulateFiles.length === 0) {
+                preview.classList.add('hidden');
+                preview.innerHTML = '';
+            } else {
+                preview.innerHTML = currentPopulateFiles.map((file, i) => {
+                    const url = URL.createObjectURL(file);
+                    objectURLs[i] = url;
+                    return `
+                    <div class="relative">
+                        <img src="${url}" class="thumbnail rounded-lg border border-custom">
+                        <button onclick="removePopulateFile(${i})" class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs">✕</button>
+                    </div>
+                `}).join('');
+            }
+        }
+
+        function savePopulateScans() {
+            const rollId = DOM['populate-roll'].value;
+            if (!rollId) { showToast('请先选择胶卷'); return; }
+            if (currentPopulateFiles.length === 0) { showToast('请先选择图片'); return; }
+
+            const roll = storage.rolls.find(r => r.id == rollId);
+            if (!roll) { showToast('胶卷不存在'); return; }
+
+            let completed = 0;
+            currentPopulateFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    storage.scans.push({
+                        id: Date.now() + index,
+                        rollId: rollId,
+                        index: storage.scans.filter(s => s.rollId == rollId).length + index + 1,
+                        title: '',
+                        description: '',
+                        authorId: roll.artistId || '',
+                        date: roll.date || new Date().toISOString().split('T')[0],
+                        imageData: e.target.result,
+                        active: true,
+                        createdAt: new Date().toISOString()
+                    });
+                    completed++;
+
+                    if (completed === currentPopulateFiles.length) {
+                        objectURLs.forEach(url => URL.revokeObjectURL(url));
+                        objectURLs.length = 0;
+                        saveStorage();
+                        showToast(`已保存 ${currentPopulateFiles.length} 张扫描，即将跳转到预览...`);
+                        currentPopulateFiles = [];
+                        DOM['populate-preview'].classList.add('hidden');
+                        DOM['populate-preview'].innerHTML = '';
+                        fileInput.value = '';
+                        updateStats();
+
+                        // Auto switch to edit tab after short delay
+                        setTimeout(() => {
+                            switchTab('edit');
+                            // Auto select the roll in preview
+                            const previewSelect = document.getElementById('preview-roll-select');
+                            if (previewSelect) {
+                                previewSelect.value = rollId;
+                                onRollSelectChange();
+                                showToast(`已自动加载胶卷预览`);
+                            }
+                        }, 800);
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Form submissions
+        document.getElementById('form-log-roll')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('roll-name').value.trim();
+            if (!name) { showToast('请输入胶卷名称'); return; }
+
+            const newRollId = Date.now();
+            storage.rolls.push({
+                id: newRollId,
+                name: name,
+                filmId: document.getElementById('roll-film').value,
+                format: document.getElementById('roll-format').value || '135',
+                camera: document.getElementById('roll-camera').value.trim(),
+                artistId: document.getElementById('roll-artist').value,
+                date: document.getElementById('roll-date').value,
+                notes: document.getElementById('roll-notes').value,
+                createdAt: new Date().toISOString()
+            });
+            saveStorage();
+            showToast('胶卷已保存，即将跳转到填充页面...');
+            e.target.reset();
+            document.getElementById('roll-date').valueAsDate = new Date();
+            populateSelects();
+            updateStats();
+
+            // Auto switch to populate tab
+            setTimeout(() => {
+                switchTab('populate');
+                // Auto select the newly created roll
+                const populateSelect = document.getElementById('populate-roll');
+                if (populateSelect) {
+                    populateSelect.value = newRollId;
+                    showToast(`已自动选择胶卷: ${name}`);
+                }
+            }, 600);
+        });
+
+        // Dictionary management
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+            if (modalId === 'filmDictModal') renderFilmList();
+            if (modalId === 'artistDictModal') renderArtistList();
+        }
+
+        function showRollsModal() {
+            document.getElementById('rollsListModal').classList.add('active');
+            renderRollsList();
+        }
+
+        function renderRollsList() {
+            const container = document.getElementById('rolls-list-container');
+
+            if (storage.rolls.length === 0) {
+                container.innerHTML = '<div class="empty-state py-8">暂无胶卷</div>';
+                return;
+            }
+
+            const sortedRolls = [...storage.rolls].sort((a, b) => {
+                const dateA = a.date ? new Date(a.date) : new Date(a.createdAt || 0);
+                const dateB = b.date ? new Date(b.date) : new Date(b.createdAt || 0);
+                return (isNaN(dateB) ? 0 : dateB.getTime()) - (isNaN(dateA) ? 0 : dateA.getTime());
+            });
+
+            container.innerHTML = sortedRolls.map(roll => {
+                const film = storage.films.find(f => f.id == roll.filmId);
+                const artist = storage.artists.find(a => a.id == roll.artistId);
+                const scanCount = storage.scans.filter(s => s.rollId == roll.id).length;
+                const dateDisplay = roll.date ? new Date(roll.date).toLocaleDateString('zh-CN') : '未设定日期';
+
+                return `
+                    <div class="flex items-center justify-between p-4 border border-custom rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-800">${roll.name || '未命名胶卷'}</div>
+                            <div class="text-sm text-gray-500 mt-1">
+                                ${film ? film.name : '未知胶片'}
+                                ${roll.format ? '· ' + roll.format.toUpperCase() : ''}
+                                ${roll.camera ? '· ' + roll.camera : ''}
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1">
+                                ${dateDisplay} · ${scanCount} 张扫描
+                                ${artist ? '· 摄影师: ' + artist.name : ''}
+                            </div>
+                        </div>
+                        <div class="flex gap-2 ml-4">
+                            <button onclick="editRoll(${roll.id})" class="px-3 py-1.5 text-sm border border-custom rounded hover-custom">编辑</button>
+                            <button onclick="deleteRoll(${roll.id})" class="px-3 py-1.5 text-sm border border-custom rounded text-red-500 hover:bg-red-50">删除</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function renderFilmList() {
+            DOM['film-list'].innerHTML = storage.films.map(f => `
+                <div class="flex justify-between items-center px-3 py-2 border border-custom rounded">
+                    <span>${f.name} ISO${f.iso}</span>
+                    <button onclick="deleteFilm(${f.id})" class="text-red-400 hover:text-red-600 text-xs">删除</button>
+                </div>
+            `).join('');
+        }
+
+        function renderArtistList() {
+            DOM['artist-list'].innerHTML = storage.artists.map(a => `
+                <div class="flex justify-between items-center px-3 py-2 border border-custom rounded">
+                    <span>${a.name}</span>
+                    <button onclick="deleteArtist(${a.id})" class="text-red-400 hover:text-red-600 text-xs">删除</button>
+                </div>
+            `).join('');
+        }
+
+        function deleteFilm(id) {
+            const film = storage.films.find(f => f.id === id);
+            if (!film) return;
+            if (confirm(`确定删除胶片类型 "${film.name}" 吗？`)) {
+                storage.films = storage.films.filter(f => f.id !== id);
+                saveStorage();
+                renderFilmList();
+                populateSelects();
+                showToast('胶片类型已删除');
+            }
+        }
+
+        function deleteArtist(id) {
+            const artist = storage.artists.find(a => a.id === id);
+            if (!artist) return;
+            if (confirm(`确定删除摄影师 "${artist.name}" 吗？`)) {
+                storage.artists = storage.artists.filter(a => a.id !== id);
+                saveStorage();
+                renderArtistList();
+                populateSelects();
+                showToast('摄影师已删除');
+            }
+        }
+
+        document.getElementById('form-add-film')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('new-film-name').value.trim();
+            const iso = document.getElementById('new-film-iso').value.trim();
+            if (name) {
+                storage.films.push({ id: Date.now(), name, iso: iso || '未知' });
+                saveStorage();
+                renderFilmList();
+                populateSelects();
+                e.target.reset();
+                showToast('胶片类型已添加');
+            }
+        });
+
+        document.getElementById('form-add-artist')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('new-artist-name').value.trim();
+            if (name) {
+                storage.artists.push({ id: Date.now(), name });
+                saveStorage();
+                renderArtistList();
+                populateSelects();
+                e.target.reset();
+                showToast('摄影师已添加');
+            }
+        });
+
+        // Close modals on outside click
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal') && e.target.classList.contains('active')) {
+                e.target.classList.remove('active');
+            }
+        });
+
+        // Batch deletion functionality
+        let batchMode = false;
+        let selectedScans = new Set();
+
+        function toggleBatchMode() {
+            batchMode = !batchMode;
+            const grid = DOM['photo-overview-grid'];
+            const btn = document.getElementById('batch-mode-btn');
+            const toolbar = document.getElementById('batch-toolbar');
+
+            if (batchMode) {
+                grid.classList.add('batch-mode');
+                btn.classList.add('active', 'bg-gray-800', 'text-white');
+                toolbar.classList.add('active');
+                selectedScans.clear();
+                document.getElementById('batch-select-all').checked = false;
+                updateBatchCount();
+                // Re-render to show checkboxes
+                renderPhotoOverview();
+                showToast('批量删除模式已开启，点击图片选择');
+            } else {
+                cancelBatchMode();
+            }
+        }
+
+        function cancelBatchMode() {
+            batchMode = false;
+            selectedScans.clear();
+            const grid = DOM['photo-overview-grid'];
+            const btn = document.getElementById('batch-mode-btn');
+            const toolbar = document.getElementById('batch-toolbar');
+
+            grid.classList.remove('batch-mode');
+            btn.classList.remove('active', 'bg-gray-800', 'text-white');
+            toolbar.classList.remove('active');
+            document.getElementById('batch-select-all').checked = false;
+
+            // Re-render to hide checkboxes
+            renderPhotoOverview();
+        }
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('batch-select-all').checked;
+
+            if (selectAll) {
+                // Select all scans
+                fsState.scans.forEach(scan => selectedScans.add(scan.id));
+            } else {
+                // Deselect all
+                selectedScans.clear();
+            }
+
+            // Update all checkbox visuals
+            document.querySelectorAll('.batch-select-checkbox').forEach(cb => {
+                const scanId = parseInt(cb.dataset.id);
+                cb.classList.toggle('selected', selectedScans.has(scanId));
+            });
+
+            updateBatchCount();
+        }
+
+        function updateBatchCount() {
+            const count = selectedScans.size;
+            document.getElementById('batch-count').textContent = `已选 ${count} 张`;
+        }
+
+        function confirmBatchDelete() {
+            const count = selectedScans.size;
+            if (count === 0) {
+                showToast('请先选择要删除的照片');
+                return;
+            }
+
+            if (!confirm(`确定要删除选中的 ${count} 张照片吗？此操作不可恢复。`)) {
+                return;
+            }
+
+            // Delete selected scans
+            const deletedIds = Array.from(selectedScans);
+            storage.scans = storage.scans.filter(s => !selectedScans.has(s.id));
+
+            // Remove from featured
+            deletedIds.forEach(id => {
+                const idx = storage.featured.indexOf(id);
+                if (idx > -1) storage.featured.splice(idx, 1);
+            });
+
+            saveStorage();
+            selectedScans.clear();
+            updateStats();
+            renderPhotoOverview();
+            renderRecentPhotos();
+            updateBatchCount();
+            document.getElementById('batch-select-all').checked = false;
+
+            showToast(`已删除 ${count} 张照片`);
+        }
+
+        // Onboarding
+        let currentOnboardingStep = 1;
+        const totalOnboardingSteps = 3;
+
+        function showOnboarding() {
+            currentOnboardingStep = 1;
+            updateOnboardingUI();
+            document.getElementById('onboardingModal').classList.add('active');
+        }
+
+        function closeOnboarding() {
+            document.getElementById('onboardingModal').classList.remove('active');
+            localStorage.setItem('film_onboarding_completed', 'true');
+        }
+
+        function nextOnboardingStep() {
+            if (currentOnboardingStep < totalOnboardingSteps) {
+                currentOnboardingStep++;
+                updateOnboardingUI();
+            }
+        }
+
+        function prevOnboardingStep() {
+            if (currentOnboardingStep > 1) {
+                currentOnboardingStep--;
+                updateOnboardingUI();
+            }
+        }
+
+        function updateOnboardingUI() {
+            // Show/hide steps
+            document.querySelectorAll('.onboarding-step').forEach(el => {
+                el.classList.add('hidden');
+            });
+            document.querySelector(`.onboarding-step[data-step="${currentOnboardingStep}"]`).classList.remove('hidden');
+
+            // Update dots
+            document.querySelectorAll('.onboarding-dot').forEach(dot => {
+                const step = parseInt(dot.dataset.step);
+                dot.classList.toggle('active', step === currentOnboardingStep);
+                dot.classList.toggle('bg-gray-800', step === currentOnboardingStep);
+                dot.classList.toggle('bg-gray-300', step !== currentOnboardingStep);
+            });
+
+            // Update buttons
+            document.getElementById('onboarding-prev').classList.toggle('hidden', currentOnboardingStep === 1);
+            document.getElementById('onboarding-next').classList.toggle('hidden', currentOnboardingStep === totalOnboardingSteps);
+            document.getElementById('onboarding-finish').classList.toggle('hidden', currentOnboardingStep !== totalOnboardingSteps);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initDOM();
+
+            const savedFilms = localStorage.getItem('film_types');
+            if (!savedFilms || JSON.parse(savedFilms).length < defaultFilms.length) {
+                storage.films = defaultFilms;
+                saveStorage();
+            }
+
+            document.getElementById('roll-date').valueAsDate = new Date();
+
+            updateStats();
+            populateSelects();
+            populatePreviewRollSelect();
+            renderRecentPhotos();
+
+            // Show onboarding for first-time users
+            if (!localStorage.getItem('film_onboarding_completed')) {
+                showOnboarding();
+            }
+        });
+    </script>
+</body>
+</html>
