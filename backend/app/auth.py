@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Optional, Union
+import hashlib
+import secrets
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,16 +14,30 @@ from app.models import User
 from app.schemas import TokenPayload
 
 settings = get_settings()
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
 
 
+def _hash_with_salt(password: str, salt: str) -> str:
+    """使用 SHA256 + Salt 哈希密码"""
+    return hashlib.sha256((password + salt).encode()).hexdigest()
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    """验证密码"""
+    # 格式: hash:salt
+    if ":" not in hashed_password:
+        return False
+    stored_hash, salt = hashed_password.rsplit(":", 1)
+    computed_hash = _hash_with_salt(plain_password, salt)
+    return secrets.compare_digest(stored_hash, computed_hash)
 
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    """生成密码哈希"""
+    # 生成随机 salt
+    salt = secrets.token_hex(16)
+    hash_value = _hash_with_salt(password, salt)
+    return f"{hash_value}:{salt}"
 
 
 def create_access_token(user_id: int, expires_delta: Optional[timedelta] = None) -> str:
