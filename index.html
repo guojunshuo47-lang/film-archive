@@ -240,9 +240,7 @@
             z-index: 100;
         }
         .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-        .grid-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; align-items: start; }
-        .populate-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; align-items: start; }
-        .populate-preview-grid .thumbnail { width: 100%; height: 150px; object-fit: cover; }
+        .grid-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
         .index-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
         .date-group { margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px dashed var(--border-color); }
         .date-group:last-child { border-bottom: none; }
@@ -460,7 +458,6 @@
         .auto-fullscreen-hint.show { display: block; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.js"></script>
 </head>
 <body class="min-h-screen">
     <header class="border-b border-custom px-8 py-4">
@@ -544,31 +541,9 @@
             <!-- Works Section -->
             <div class="section-content active" id="section-works">
                 <div class="flex border border-custom rounded-lg overflow-hidden mb-5 text-sm">
-                    <button class="tab-btn flex-1 py-2.5 text-center" onclick="switchTab('populate')" id="tab-populate">填充胶卷</button>
-                    <button class="tab-btn flex-1 py-2.5 text-center border-x border-custom" onclick="switchTab('log')" id="tab-log">登记胶卷</button>
+                    <button class="tab-btn flex-1 py-2.5 text-center" onclick="switchTab('log')" id="tab-log">登记胶卷</button>
+                    <button class="tab-btn flex-1 py-2.5 text-center border-x border-custom" onclick="switchTab('populate')" id="tab-populate">填充胶卷</button>
                     <button class="tab-btn active flex-1 py-2.5 text-center" onclick="switchTab('edit')" id="tab-edit">照片概览</button>
-                </div>
-
-                <!-- Populate a Roll -->
-                <div class="section-content border border-custom rounded-xl paper-bg p-6" id="content-populate">
-                    <h2 class="handwritten text-2xl text-gray-700 mb-6">批量上传扫描</h2>
-                    <div class="space-y-4" id="populate-form">
-                        <div class="flex items-center gap-4">
-                            <label class="text-sm w-28">选择胶卷:</label>
-                            <select id="populate-roll" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg">
-                                <option value="">请选择胶卷</option>
-                            </select>
-                        </div>
-                        <div class="border-2 border-dashed border-custom rounded-lg p-8 text-center" id="drop-zone">
-                            <p class="text-gray-500 mb-2">拖拽图片到这里或点击上传</p>
-                            <input type="file" id="populate-files" multiple accept="image/*" class="hidden">
-                            <button onclick="document.getElementById('populate-files').click()" class="px-4 py-2 border border-custom rounded text-sm paper-bg hover-custom">选择文件</button>
-                        </div>
-                        <div id="populate-preview" class="populate-preview-grid hidden"></div>
-                        <div class="pt-4 border-t border-custom">
-                            <button onclick="savePopulateScans()" class="w-full py-2.5 border border-custom rounded text-sm paper-bg hover-custom">保存所有扫描</button>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- Log a Roll -->
@@ -619,6 +594,28 @@
                             <button type="submit" class="w-full py-2.5 border border-custom rounded text-sm paper-bg hover-custom">保存胶卷</button>
                         </div>
                     </form>
+                </div>
+
+                <!-- Populate a Roll -->
+                <div class="section-content border border-custom rounded-xl paper-bg p-6" id="content-populate">
+                    <h2 class="handwritten text-2xl text-gray-700 mb-6">批量上传扫描</h2>
+                    <div class="space-y-4" id="populate-form">
+                        <div class="flex items-center gap-4">
+                            <label class="text-sm w-28">选择胶卷:</label>
+                            <select id="populate-roll" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg">
+                                <option value="">请选择胶卷</option>
+                            </select>
+                        </div>
+                        <div class="border-2 border-dashed border-custom rounded-lg p-8 text-center" id="drop-zone">
+                            <p class="text-gray-500 mb-2">拖拽图片到这里或点击上传</p>
+                            <input type="file" id="populate-files" multiple accept="image/*" class="hidden">
+                            <button onclick="document.getElementById('populate-files').click()" class="px-4 py-2 border border-custom rounded text-sm paper-bg hover-custom">选择文件</button>
+                        </div>
+                        <div id="populate-preview" class="grid-photos hidden"></div>
+                        <div class="pt-4 border-t border-custom">
+                            <button onclick="savePopulateScans()" class="w-full py-2.5 border border-custom rounded text-sm paper-bg hover-custom">保存所有扫描</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Photo Overview -->
@@ -730,35 +727,6 @@
         <div class="fullscreen-info">
             <h3 id="fullscreen-title" class="handwritten text-xl mb-1"></h3>
             <p id="fullscreen-meta" class="text-sm text-gray-400"></p>
-            <!-- EXIF信息显示 -->
-            <div id="fullscreen-exif" class="mt-3 pt-3 border-t border-white/10 hidden">
-                <div class="flex items-center gap-2 mb-2">
-                    <span id="fullscreen-photo-type" class="px-2 py-0.5 rounded text-xs font-medium"></span>
-                    <span id="fullscreen-camera" class="text-xs text-gray-400"></span>
-                </div>
-                <div class="flex flex-wrap gap-3 text-sm">
-                    <span id="fullscreen-aperture" class="hidden flex items-center gap-1">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
-                        <span></span>
-                    </span>
-                    <span id="fullscreen-shutter" class="hidden flex items-center gap-1">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-                        <span></span>
-                    </span>
-                    <span id="fullscreen-iso" class="hidden flex items-center gap-1">
-                        <span class="text-xs font-bold border border-current rounded px-1">ISO</span>
-                        <span></span>
-                    </span>
-                    <span id="fullscreen-focal" class="hidden flex items-center gap-1">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3m10-10h-3M5 12H2m15.5-6.5L18 6M6 18l-1.5 1.5M18 18l1.5 1.5M6 6L4.5 4.5"/></svg>
-                        <span></span>
-                    </span>
-                    <span id="fullscreen-date-taken" class="hidden flex items-center gap-1">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                        <span></span>
-                    </span>
-                </div>
-            </div>
         </div>
         <div class="fullscreen-actions" style="position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; gap: 16px; z-index: 1002;">
             <button id="fullscreen-favorite" class="w-12 h-12 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-lg transition-all featured-heart-fullscreen" title="收藏">
@@ -850,169 +818,73 @@
                         </div>
                     </div>
 
-                    <!-- Step 2: 填充胶卷 -->
+                    <!-- Step 2: How to use -->
                     <div class="onboarding-step hidden" data-step="2">
-                        <h2 class="text-2xl font-light text-gray-800 mb-6 text-center">📦 第一步：填充胶卷</h2>
+                        <h2 class="text-2xl font-light text-gray-800 mb-6 text-center">使用指南</h2>
                         <div class="space-y-4">
-                            <div class="bg-amber-50 rounded-xl p-4">
-                                <div class="flex items-center gap-3 mb-3">
-                                    <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center">1</div>
-                                    <h3 class="font-medium text-gray-800">创建胶卷档案</h3>
+                            <div class="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-transparent">
+                                <div class="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center font-semibold flex-shrink-0">1</div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800 mb-1">登记胶卷</h3>
+                                    <p class="text-gray-500 text-sm">只需填写胶卷名称即可创建。可选填胶片型号（51种）、画幅（135/120/数码等）、拍摄设备、摄影师等信息。</p>
                                 </div>
-                                <p class="text-gray-600 text-sm leading-relaxed">点击"填充胶卷"标签，填写胶卷名称。可选填胶片型号（51种）、画幅（135/120/数码等）、拍摄设备、摄影师等信息。</p>
                             </div>
-                            <div class="bg-blue-50 rounded-xl p-4">
-                                <div class="flex items-center gap-3 mb-3">
-                                    <div class="w-8 h-8 rounded-lg bg-blue-500 text-white flex items-center justify-center">2</div>
-                                    <h3 class="font-medium text-gray-800">保存并继续</h3>
+                            <div class="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-blue-50 to-transparent">
+                                <div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold flex-shrink-0">2</div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800 mb-1">上传照片</h3>
+                                    <p class="text-gray-500 text-sm">在"填充胶卷"中批量上传照片，支持拖拽。保存后自动跳转到预览页面，无需手动切换。</p>
                                 </div>
-                                <p class="text-gray-600 text-sm leading-relaxed">点击"保存胶卷"后，系统会自动跳转到照片上传页面，无需手动切换。</p>
                             </div>
-                            <div class="bg-gray-50 rounded-xl p-4 flex items-center gap-4">
-                                <div class="text-4xl">💡</div>
-                                <p class="text-gray-600 text-sm"><strong>小贴士：</strong>数码拍摄也支持！选择"全画幅数码"或"手机"画幅即可。</p>
+                            <div class="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-green-50 to-transparent">
+                                <div class="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold flex-shrink-0">3</div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800 mb-1">浏览与管理</h3>
+                                    <p class="text-gray-500 text-sm">照片概览显示胶片盒风格卡片，包含画幅、ISO、设备信息。点击心形收藏，支持批量删除。</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-purple-50 to-transparent">
+                                <div class="w-10 h-10 rounded-full bg-purple-500 text-white flex items-center justify-center font-semibold flex-shrink-0">4</div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800 mb-1">快捷入口</h3>
+                                    <p class="text-gray-500 text-sm">归档概览的统计卡片可点击：胶卷总数→管理胶卷，扫描张数→查看档案，胶片种类→胶片字典。</p>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Step 3: 上传照片 -->
+                    <!-- Step 3: Features -->
                     <div class="onboarding-step hidden" data-step="3">
-                        <h2 class="text-2xl font-light text-gray-800 mb-6 text-center">📤 第二步：上传照片</h2>
-                        <div class="space-y-4">
-                            <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4">
-                                <h3 class="font-medium text-gray-800 mb-2 flex items-center gap-2">
-                                    <span class="text-xl">🖱️</span> 拖拽上传
-                                </h3>
-                                <p class="text-gray-600 text-sm">将图片文件直接拖拽到上传区域，或点击"选择文件"按钮批量选择。支持同时上传多张照片。</p>
-                            </div>
-                            <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4">
-                                <h3 class="font-medium text-gray-800 mb-2 flex items-center gap-2">
-                                    <span class="text-xl">🤖</span> 自动识别
-                                </h3>
-                                <p class="text-gray-600 text-sm">上传后会自动分析照片的EXIF信息，识别数码照片和胶片扫描，并用不同颜色标签标注。</p>
-                                <div class="flex gap-3 mt-3">
-                                    <span class="px-2 py-1 bg-amber-500 text-white text-xs rounded">🎞️ 胶片</span>
-                                    <span class="px-2 py-1 bg-blue-500 text-white text-xs rounded">📷 数码</span>
+                        <h2 class="text-2xl font-light text-gray-800 mb-6 text-center">功能亮点</h2>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="p-4 rounded-xl bg-gray-50 text-center">
+                                <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-400 flex items-center justify-center">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
                                 </div>
-                            </div>
-                            <div class="bg-gray-50 rounded-xl p-4 flex items-center gap-4">
-                                <div class="text-4xl">✨</div>
-                                <p class="text-gray-600 text-sm"><strong>智能跳转：</strong>保存后会自动跳转到照片概览，并加载当前胶卷的照片。</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 4: EXIF识别 -->
-                    <div class="onboarding-step hidden" data-step="4">
-                        <h2 class="text-2xl font-light text-gray-800 mb-6 text-center">🔍 EXIF 智能识别</h2>
-                        <div class="space-y-4">
-                            <div class="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-4">
-                                <h3 class="font-medium text-gray-800 mb-2">如何区分照片类型？</h3>
-                                <p class="text-gray-600 text-sm leading-relaxed">系统通过分析照片的EXIF元数据自动分类：</p>
-                                <ul class="mt-2 space-y-1 text-sm text-gray-600">
-                                    <li class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span>有完整EXIF（光圈、快门速度）→ 标记为<strong>数码照片</strong></li>
-                                    <li class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-amber-500"></span>无完整EXIF → 标记为<strong>胶片扫描</strong></li>
-                                </ul>
-                            </div>
-                            <div class="bg-gray-50 rounded-xl p-4">
-                                <h3 class="font-medium text-gray-800 mb-3">全屏查看器显示信息</h3>
-                                <div class="grid grid-cols-3 gap-2 text-xs">
-                                    <div class="bg-white rounded p-2 text-center">
-                                        <div class="text-lg mb-1">📷</div>
-                                        <div class="text-gray-500">相机型号</div>
-                                    </div>
-                                    <div class="bg-white rounded p-2 text-center">
-                                        <div class="text-lg mb-1">🔍</div>
-                                        <div class="text-gray-500">光圈值</div>
-                                    </div>
-                                    <div class="bg-white rounded p-2 text-center">
-                                        <div class="text-lg mb-1">⏱️</div>
-                                        <div class="text-gray-500">快门速度</div>
-                                    </div>
-                                    <div class="bg-white rounded p-2 text-center">
-                                        <div class="text-lg mb-1">📐</div>
-                                        <div class="text-gray-500">ISO感光度</div>
-                                    </div>
-                                    <div class="bg-white rounded p-2 text-center">
-                                        <div class="text-lg mb-1">🎯</div>
-                                        <div class="text-gray-500">焦距</div>
-                                    </div>
-                                    <div class="bg-white rounded p-2 text-center">
-                                        <div class="text-lg mb-1">📅</div>
-                                        <div class="text-gray-500">拍摄日期</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 5: 浏览与管理 -->
-                    <div class="onboarding-step hidden" data-step="5">
-                        <h2 class="text-2xl font-light text-gray-800 mb-6 text-center">🖼️ 浏览与管理</h2>
-                        <div class="space-y-4">
-                            <div class="grid grid-cols-2 gap-3">
-                                <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-3 text-center">
-                                    <div class="text-2xl mb-2">🎞️</div>
-                                    <h4 class="font-medium text-gray-800 text-sm mb-1">分组展示</h4>
-                                    <p class="text-gray-500 text-xs">胶片照片和数码照片分区块显示</p>
-                                </div>
-                                <div class="bg-gradient-to-br from-pink-50 to-red-50 rounded-xl p-3 text-center">
-                                    <div class="text-2xl mb-2">❤️</div>
-                                    <h4 class="font-medium text-gray-800 text-sm mb-1">收藏精选</h4>
-                                    <p class="text-gray-500 text-xs">点击心形图标收藏喜欢的照片</p>
-                                </div>
-                                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-3 text-center">
-                                    <div class="text-2xl mb-2">🗑️</div>
-                                    <h4 class="font-medium text-gray-800 text-sm mb-1">批量删除</h4>
-                                    <p class="text-gray-500 text-xs">开启批量模式管理多张照片</p>
-                                </div>
-                                <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 text-center">
-                                    <div class="text-2xl mb-2">🔍</div>
-                                    <h4 class="font-medium text-gray-800 text-sm mb-1">全屏浏览</h4>
-                                    <p class="text-gray-500 text-xs">滚轮缩放，键盘导航</p>
-                                </div>
-                            </div>
-                            <div class="bg-gray-50 rounded-xl p-4">
-                                <h3 class="font-medium text-gray-800 mb-2 flex items-center gap-2">
-                                    <span>🎹</span> 快捷键提示
-                                </h3>
-                                <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                                    <div class="flex items-center gap-2"><kbd class="px-2 py-1 bg-white rounded border">←</kbd> 上一张</div>
-                                    <div class="flex items-center gap-2"><kbd class="px-2 py-1 bg-white rounded border">→</kbd> 下一张</div>
-                                    <div class="flex items-center gap-2"><kbd class="px-2 py-1 bg-white rounded border">0</kbd> 重置缩放</div>
-                                    <div class="flex items-center gap-2"><kbd class="px-2 py-1 bg-white rounded border">Esc</kbd> 退出全屏</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 6: 功能亮点 -->
-                    <div class="onboarding-step hidden" data-step="6">
-                        <h2 class="text-2xl font-light text-gray-800 mb-6 text-center">✨ 功能亮点</h2>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="p-4 rounded-xl bg-gradient-to-br from-amber-100 to-orange-50 text-center">
-                                <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-2xl">🎞️</div>
                                 <h3 class="font-medium text-gray-800 mb-1">胶片盒卡片</h3>
-                                <p class="text-gray-500 text-xs">直观显示画幅、ISO、设备品牌</p>
+                                <p class="text-gray-500 text-xs">显示画幅、ISO、设备</p>
                             </div>
-                            <div class="p-4 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-50 text-center">
-                                <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-2xl">🤖</div>
-                                <h3 class="font-medium text-gray-800 mb-1">智能识别</h3>
-                                <p class="text-gray-500 text-xs">自动区分胶片扫描与数码照片</p>
+                            <div class="p-4 rounded-xl bg-gray-50 text-center">
+                                <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-red-400 to-pink-400 flex items-center justify-center">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
+                                </div>
+                                <h3 class="font-medium text-gray-800 mb-1">批量删除</h3>
+                                <p class="text-gray-500 text-xs">一键管理多张照片</p>
                             </div>
-                            <div class="p-4 rounded-xl bg-gradient-to-br from-green-100 to-emerald-50 text-center">
-                                <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-2xl">📚</div>
+                            <div class="p-4 rounded-xl bg-gray-50 text-center">
+                                <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-green-400 to-emerald-400 flex items-center justify-center">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                                </div>
                                 <h3 class="font-medium text-gray-800 mb-1">51种胶片</h3>
-                                <p class="text-gray-500 text-xs">Kodak/Fujifilm/Ilford全收录</p>
+                                <p class="text-gray-500 text-xs">含数码/手机选项</p>
                             </div>
-                            <div class="p-4 rounded-xl bg-gradient-to-br from-purple-100 to-pink-50 text-center">
-                                <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-2xl">💾</div>
-                                <h3 class="font-medium text-gray-800 mb-1">本地存储</h3>
-                                <p class="text-gray-500 text-xs">所有数据保存在浏览器中</p>
+                            <div class="p-4 rounded-xl bg-gray-50 text-center">
+                                <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                                </div>
+                                <h3 class="font-medium text-gray-800 mb-1">快捷统计</h3>
+                                <p class="text-gray-500 text-xs">点击数字快速跳转</p>
                             </div>
-                        </div>
-                        <div class="mt-4 p-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl text-center">
-                            <p class="text-gray-600 text-sm">🎉 现在就开始记录你的胶片故事吧！</p>
                         </div>
                     </div>
                 </div>
@@ -1024,9 +896,6 @@
                             <span class="w-2 h-2 rounded-full bg-gray-300 onboarding-dot active" data-step="1"></span>
                             <span class="w-2 h-2 rounded-full bg-gray-300 onboarding-dot" data-step="2"></span>
                             <span class="w-2 h-2 rounded-full bg-gray-300 onboarding-dot" data-step="3"></span>
-                            <span class="w-2 h-2 rounded-full bg-gray-300 onboarding-dot" data-step="4"></span>
-                            <span class="w-2 h-2 rounded-full bg-gray-300 onboarding-dot" data-step="5"></span>
-                            <span class="w-2 h-2 rounded-full bg-gray-300 onboarding-dot" data-step="6"></span>
                         </div>
                         <div class="flex gap-3">
                             <button id="onboarding-prev" onclick="prevOnboardingStep()" class="px-4 py-2 text-gray-500 hover:text-gray-700 hidden">上一步</button>
@@ -1382,13 +1251,9 @@
             const roll = storage.rolls.find(r => r.id == rollId);
             if (!roll) return;
 
-            const allScans = storage.scans
+            const scans = storage.scans
                 .filter(s => s.rollId == rollId && s.active && s.imageData)
                 .sort((a, b) => (a.index || 0) - (b.index || 0));
-
-            // 分离胶片照片和数码照片
-            const filmScans = allScans.filter(s => s.photoType !== 'digital');
-            const digitalScans = allScans.filter(s => s.photoType === 'digital');
 
             // Update roll card - Film Box Style
             rollCard.classList.remove('hidden');
@@ -1421,21 +1286,15 @@
             document.getElementById('film-box-brand').textContent = film ? film.brand.toUpperCase() : (roll.format === 'phone' ? 'MOBILE' : 'FILM');
             document.getElementById('film-box-name').textContent = film ? film.name.split(' ').pop().substring(0, 12).toUpperCase() : 'UNKNOWN';
             document.getElementById('film-box-camera').textContent = roll.camera || '未知设备';
-            document.getElementById('film-box-exp').textContent = `${allScans.length} EXP`;
-
-            // 显示分类统计
-            const filmCountEl = document.getElementById('film-box-film-count');
-            const digitalCountEl = document.getElementById('film-box-digital-count');
-            if (filmCountEl) filmCountEl.textContent = filmScans.length;
-            if (digitalCountEl) digitalCountEl.textContent = digitalScans.length;
+            document.getElementById('film-box-exp').textContent = `${scans.length} EXP`;
 
             DOM['roll-detail-name'].textContent = roll.name;
-            DOM['roll-detail-count'].textContent = `${allScans.length} 张`;
+            DOM['roll-detail-count'].textContent = `${scans.length} 张`;
             DOM['roll-detail-date'].textContent = roll.date
                 ? `拍摄于 ${new Date(roll.date).toLocaleDateString('zh-CN')}`
                 : '未设定日期';
 
-            if (allScans.length === 0) {
+            if (scans.length === 0) {
                 grid.innerHTML = '';
                 emptyState.classList.remove('hidden');
                 emptyState.querySelector('p').textContent = '此胶卷暂无照片';
@@ -1443,117 +1302,54 @@
             }
 
             emptyState.classList.add('hidden');
-            fsState.scans = allScans;
+            fsState.scans = scans;
 
-            // 清空grid并分组渲染
-            grid.innerHTML = '';
-
-            // 渲染胶片照片组
-            if (filmScans.length > 0) {
-                grid.appendChild(createPhotoSection('🎞️ 胶片扫描', filmScans, 'film'));
-            }
-
-            // 渲染数码照片组
-            if (digitalScans.length > 0) {
-                grid.appendChild(createPhotoSection('📷 数码照片', digitalScans, 'digital'));
-            }
-
-            return;
-        }
-
-        // 创建照片分组的辅助函数
-        function createPhotoSection(title, scans, type) {
-            const section = document.createElement('div');
-            section.className = 'photo-section mb-8';
-
-            const header = document.createElement('div');
-            header.className = 'flex items-center gap-3 mb-4 pb-2 border-b border-custom';
-            header.innerHTML = `
-                <span class="text-lg">${type === 'film' ? '🎞️' : '📷'}</span>
-                <h3 class="handwritten text-xl text-gray-700">${title}</h3>
-                <span class="text-sm text-gray-500">(${scans.length} 张)</span>
-            `;
-            section.appendChild(header);
-
-            const photoGrid = document.createElement('div');
-            photoGrid.className = 'grid-photos';
+            // Use DocumentFragment for better performance
+            const fragment = document.createDocumentFragment();
 
             scans.forEach((scan, index) => {
-                photoGrid.appendChild(createPhotoThumb(scan, index, type));
+                const featured = isFeatured(scan.id);
+                const isSelected = selectedScans.has(scan.id);
+                const thumb = document.createElement('div');
+                thumb.className = 'photo-thumb';
+                thumb.innerHTML = `
+                    ${batchMode ? `<div class="batch-select-checkbox ${isSelected ? 'selected' : ''}" data-id="${scan.id}"></div>` : ''}
+                    <img data-src="${scan.imageData}" alt="" loading="lazy" data-loaded="false">
+                    <span class="frame-number">#${String(scan.index || index + 1).padStart(2, '0')}</span>
+                    <div class="photo-actions" style="${batchMode ? 'display: none !important;' : ''}">
+                        <button class="btn-featured ${featured ? 'active' : ''}" data-id="${scan.id}" title="${featured ? '取消精选' : '添加精选'}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="${featured ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                            </svg>
+                        </button>
+                        <button class="btn-delete" data-id="${scan.id}" title="删除">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+
+                // Lazy load image
+                const img = thumb.querySelector('img');
+                img.onload = () => img.setAttribute('data-loaded', 'true');
+                img.src = img.dataset.src;
+
+                // Click to open fullscreen
+                thumb.addEventListener('click', (e) => {
+                    if (!e.target.closest('.photo-actions')) {
+                        openFullscreenViewer(scan.id);
+                    }
+                });
+
+                fragment.appendChild(thumb);
             });
 
-            section.appendChild(photoGrid);
-            return section;
-        }
+            grid.innerHTML = '';
+            grid.appendChild(fragment);
 
-        // 创建单个照片缩略图
-        function createPhotoThumb(scan, index, sectionType) {
-            const featured = isFeatured(scan.id);
-            const isSelected = selectedScans.has(scan.id);
-            const thumb = document.createElement('div');
-            thumb.className = 'photo-thumb relative';
-
-            // 添加类型标识
-            const typeBadge = scan.photoType === 'digital'
-                ? '<span class="photo-type-badge absolute top-1 left-1 px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded z-10">数码</span>'
-                : '<span class="photo-type-badge absolute top-1 left-1 px-1.5 py-0.5 bg-amber-500 text-white text-xs rounded z-10">胶片</span>';
-
-            // 显示EXIF摘要
-            let exifSummary = '';
-            if (scan.exif) {
-                const parts = [];
-                if (scan.exif.aperture) parts.push(scan.exif.aperture);
-                if (scan.exif.shutter) parts.push(scan.exif.shutter);
-                if (parts.length > 0) {
-                    exifSummary = `<span class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/60 text-white text-xs rounded">${parts.join(' ')}</span>`;
-                }
-            }
-
-            thumb.innerHTML = `
-                ${batchMode ? `<div class="batch-select-checkbox ${isSelected ? 'selected' : ''}" data-id="${scan.id}"></div>` : ''}
-                ${typeBadge}
-                <img src="${scan.imageData}" alt="" loading="lazy" class="w-full h-full object-cover">
-                ${exifSummary}
-                <span class="frame-number">#${String(scan.index || index + 1).padStart(2, '0')}</span>
-                <div class="photo-actions" style="${batchMode ? 'display: none !important;' : ''}">
-                    <button class="btn-featured ${featured ? 'active' : ''}" data-id="${scan.id}" title="${featured ? '取消精选' : '添加精选'}">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="${featured ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                        </svg>
-                    </button>
-                    <button class="btn-delete" data-id="${scan.id}" title="删除">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/>
-                        </svg>
-                    </button>
-                </div>
-            `;
-
-            // Click to open fullscreen
-            thumb.addEventListener('click', (e) => {
-                if (!e.target.closest('.photo-actions') && !e.target.closest('.batch-select-checkbox')) {
-                    openFullscreenViewer(scan.id);
-                }
-            });
-
-            return thumb;
-        }
-
-        // 照片网格点击事件处理（在renderPhotoOverview中绑定）
-        function handlePhotoGridClick(e) {
-            // Handle batch selection checkbox
-            const checkbox = e.target.closest('.batch-select-checkbox');
-            if (checkbox) {
-                const scanId = parseInt(checkbox.dataset.id);
-                if (selectedScans.has(scanId)) {
-                    selectedScans.delete(scanId);
-                    checkbox.classList.remove('selected');
-                } else {
-                    selectedScans.add(scanId);
-                    checkbox.classList.add('selected');
-                }
-                updateBatchCount();
-                return;
+            // Event delegation for action buttons
+            grid.addEventListener('click', (e) => {
                 // Handle batch selection checkbox
                 const checkbox = e.target.closest('.batch-select-checkbox');
                 if (checkbox) {
@@ -1648,87 +1444,8 @@
             DOM['fullscreen-title'].textContent = scan.title || '无标题';
             DOM['fullscreen-meta'].textContent = `${getFilmName(roll?.filmId)} · ${scan.date || '未知日期'} · ${artist?.name || '未知摄影师'}`;
 
-            // 显示EXIF信息
-            updateFullscreenEXIF(scan);
-
             updateFullscreenTransform();
             updateFullscreenFavoriteButton();
-        }
-
-        // 更新全屏查看器的EXIF信息显示
-        function updateFullscreenEXIF(scan) {
-            const exifContainer = document.getElementById('fullscreen-exif');
-            const photoType = document.getElementById('fullscreen-photo-type');
-            const camera = document.getElementById('fullscreen-camera');
-            const aperture = document.getElementById('fullscreen-aperture');
-            const shutter = document.getElementById('fullscreen-shutter');
-            const iso = document.getElementById('fullscreen-iso');
-            const focal = document.getElementById('fullscreen-focal');
-            const dateTaken = document.getElementById('fullscreen-date-taken');
-
-            if (!scan.exif) {
-                exifContainer.classList.add('hidden');
-                return;
-            }
-
-            exifContainer.classList.remove('hidden');
-
-            // 照片类型标识
-            if (scan.photoType === 'digital') {
-                photoType.textContent = '数码照片';
-                photoType.className = 'px-2 py-0.5 rounded text-xs font-medium bg-blue-500 text-white';
-            } else {
-                photoType.textContent = '胶片扫描';
-                photoType.className = 'px-2 py-0.5 rounded text-xs font-medium bg-amber-500 text-white';
-            }
-
-            // 相机信息
-            if (scan.exif.camera) {
-                camera.textContent = scan.exif.camera;
-                camera.classList.remove('hidden');
-            } else {
-                camera.classList.add('hidden');
-            }
-
-            // 光圈
-            if (scan.exif.aperture) {
-                aperture.querySelector('span').textContent = scan.exif.aperture;
-                aperture.classList.remove('hidden');
-            } else {
-                aperture.classList.add('hidden');
-            }
-
-            // 快门速度
-            if (scan.exif.shutter) {
-                shutter.querySelector('span').textContent = scan.exif.shutter;
-                shutter.classList.remove('hidden');
-            } else {
-                shutter.classList.add('hidden');
-            }
-
-            // ISO
-            if (scan.exif.iso) {
-                iso.querySelector('span:last-child').textContent = scan.exif.iso;
-                iso.classList.remove('hidden');
-            } else {
-                iso.classList.add('hidden');
-            }
-
-            // 焦距
-            if (scan.exif.focalLength) {
-                focal.querySelector('span').textContent = scan.exif.focalLength;
-                focal.classList.remove('hidden');
-            } else {
-                focal.classList.add('hidden');
-            }
-
-            // 拍摄日期
-            if (scan.exif.dateTaken) {
-                dateTaken.querySelector('span').textContent = scan.exif.dateTaken;
-                dateTaken.classList.remove('hidden');
-            } else {
-                dateTaken.classList.add('hidden');
-            }
         }
 
         function navigateFullscreen(direction) {
@@ -2121,105 +1838,24 @@
 
         const objectURLs = [];
         let currentPopulateFiles = [];
-        let currentPopulateEXIF = {}; // 存储每张图片的EXIF数据
 
-        // 读取图片EXIF数据
-        function readEXIF(file) {
-            return new Promise((resolve) => {
-                if (typeof EXIF === 'undefined') {
-                    resolve(null);
-                    return;
-                }
-                EXIF.getData(file, function() {
-                    const exifData = EXIF.getAllTags(this);
-                    resolve(exifData);
-                });
-            });
-        }
-
-        // 检测照片类型：如果有光圈和快门速度，判定为数码照片
-        function detectPhotoType(exifData) {
-            if (exifData && (exifData.FNumber || exifData.ExposureTime || exifData.ISOSpeedRatings)) {
-                return 'digital';
-            }
-            return 'film';
-        }
-
-        // 格式化EXIF值显示
-        function formatEXIFValue(exifData) {
-            if (!exifData) return null;
-            return {
-                aperture: exifData.FNumber ? `f/${exifData.FNumber}` : null,
-                shutter: exifData.ExposureTime ? formatShutterSpeed(exifData.ExposureTime) : null,
-                iso: exifData.ISOSpeedRatings || null,
-                focalLength: exifData.FocalLength ? `${Math.round(exifData.FocalLength)}mm` : null,
-                dateTaken: exifData.DateTimeOriginal || null,
-                camera: exifData.Model || null,
-                lens: exifData.LensModel || null
-            };
-        }
-
-        // 格式化快门速度
-        function formatShutterSpeed(exposureTime) {
-            if (exposureTime >= 1) {
-                return `${Math.round(exposureTime * 10) / 10}s`;
-            } else {
-                const denominator = Math.round(1 / exposureTime);
-                return `1/${denominator}s`;
-            }
-        }
-
-        async function handleFiles(files) {
+        function handleFiles(files) {
             objectURLs.forEach(url => URL.revokeObjectURL(url));
             objectURLs.length = 0;
-            currentPopulateEXIF = {};
 
             currentPopulateFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
             const preview = DOM['populate-preview'];
 
-            // 创建初始预览
             preview.innerHTML = currentPopulateFiles.map((file, i) => {
                 const url = URL.createObjectURL(file);
                 objectURLs.push(url);
                 return `
-                <div class="relative populate-item" data-index="${i}">
+                <div class="relative">
                     <img src="${url}" class="thumbnail rounded-lg border border-custom">
-                    <div class="exif-badge hidden absolute top-1 left-1 px-2 py-0.5 rounded text-xs font-medium" id="badge-${i}"></div>
-                    <button onclick="removePopulateFile(${i})" class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs hover:bg-red-600 transition-colors">✕</button>
+                    <button onclick="removePopulateFile(${i})" class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs">✕</button>
                 </div>
             `}).join('');
             preview.classList.remove('hidden');
-
-            // 异步读取EXIF数据
-            for (let i = 0; i < currentPopulateFiles.length; i++) {
-                const exifData = await readEXIF(currentPopulateFiles[i]);
-                const photoType = detectPhotoType(exifData);
-                currentPopulateEXIF[i] = {
-                    raw: exifData,
-                    formatted: formatEXIFValue(exifData),
-                    type: photoType
-                };
-
-                // 更新类型标识
-                const badge = document.getElementById(`badge-${i}`);
-                if (badge) {
-                    badge.classList.remove('hidden');
-                    if (photoType === 'digital') {
-                        badge.textContent = '数码';
-                        badge.className = 'exif-badge absolute top-1 left-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-500 text-white';
-                    } else {
-                        badge.textContent = '胶片';
-                        badge.className = 'exif-badge absolute top-1 left-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-500 text-white';
-                    }
-                }
-            }
-
-            // 显示统计
-            const digitalCount = Object.values(currentPopulateEXIF).filter(e => e.type === 'digital').length;
-            const filmCount = currentPopulateFiles.length - digitalCount;
-            if (digitalCount > 0 || filmCount > 0) {
-                showToast(`📊 识别完成：${filmCount} 张胶片照片，${digitalCount} 张数码照片`);
-            }
         }
 
         function removePopulateFile(index) {
@@ -2258,7 +1894,6 @@
             currentPopulateFiles.forEach((file, index) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    const exifInfo = currentPopulateEXIF[index] || {};
                     storage.scans.push({
                         id: Date.now() + index,
                         rollId: rollId,
@@ -2269,9 +1904,7 @@
                         date: roll.date || new Date().toISOString().split('T')[0],
                         imageData: e.target.result,
                         active: true,
-                        createdAt: new Date().toISOString(),
-                        photoType: exifInfo.type || 'unknown',
-                        exif: exifInfo.formatted || null
+                        createdAt: new Date().toISOString()
                     });
                     completed++;
 
@@ -2279,12 +1912,7 @@
                         objectURLs.forEach(url => URL.revokeObjectURL(url));
                         objectURLs.length = 0;
                         saveStorage();
-
-                        // 显示保存成功提示
-                        const roll = storage.rolls.find(r => r.id == rollId);
-                        const rollName = roll ? roll.name : '未知胶卷';
-                        showToast(`✅ 保存成功！${currentPopulateFiles.length} 张照片已添加到「${rollName}」`);
-
+                        showToast(`已保存 ${currentPopulateFiles.length} 张扫描，即将跳转到预览...`);
                         currentPopulateFiles = [];
                         DOM['populate-preview'].classList.add('hidden');
                         DOM['populate-preview'].innerHTML = '';
@@ -2299,9 +1927,9 @@
                             if (previewSelect) {
                                 previewSelect.value = rollId;
                                 onRollSelectChange();
-                                showToast(`📷 已加载「${rollName}」的照片概览`);
+                                showToast(`已自动加载胶卷预览`);
                             }
-                        }, 1200);
+                        }, 800);
                     }
                 };
                 reader.readAsDataURL(file);
@@ -2580,7 +2208,7 @@
 
         // Onboarding
         let currentOnboardingStep = 1;
-        const totalOnboardingSteps = 6;
+        const totalOnboardingSteps = 3;
 
         function showOnboarding() {
             currentOnboardingStep = 1;
