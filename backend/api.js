@@ -3,7 +3,27 @@
  * 提供与后端 API 的通信功能
  */
 
-const API_BASE_URL = localStorage.getItem('api_base_url') || 'http://localhost:8000/api';
+// 检测当前页面 URL，自动推断后端地址
+function detectApiBaseUrl() {
+    // 1. 优先使用 localStorage 中存储的配置
+    const savedUrl = localStorage.getItem('api_base_url');
+    if (savedUrl) return savedUrl;
+
+    // 2. 如果页面是通过 HTTP/HTTPS 访问的，尝试推断后端地址
+    if (window.location.protocol.startsWith('http')) {
+        // 同域名不同端口
+        return `${window.location.protocol}//${window.location.hostname}:8000/api`;
+    }
+
+    // 3. 默认本地开发地址
+    return 'http://localhost:8000/api';
+}
+
+const API_BASE_URL = detectApiBaseUrl();
+console.log('API Base URL:', API_BASE_URL);
+
+// API 状态
+let apiAvailable = false;
 
 // ============= Auth Token Management =============
 const Auth = {
@@ -42,6 +62,22 @@ const Auth = {
 
 // ============= API Client =============
 const API = {
+    async checkHealth() {
+        try {
+            const response = await fetch(`${API_BASE_URL.replace('/api', '')}/health`, {
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-cache'
+            });
+            apiAvailable = response.ok;
+            return response.ok;
+        } catch (error) {
+            console.warn('Backend not available:', error.message);
+            apiAvailable = false;
+            return false;
+        }
+    },
+
     async request(endpoint, options = {}) {
         const url = `${API_BASE_URL}${endpoint}`;
         const headers = {
@@ -58,7 +94,8 @@ const API = {
         try {
             const response = await fetch(url, {
                 ...options,
-                headers
+                headers,
+                mode: 'cors'
             });
 
             // Handle token expiration
@@ -67,7 +104,12 @@ const API = {
                 if (refreshed) {
                     // Retry request with new token
                     headers['Authorization'] = `Bearer ${Auth.getToken()}`;
-                    return fetch(url, { ...options, headers });
+                    const retryResponse = await fetch(url, { ...options, headers, mode: 'cors' });
+                    if (!retryResponse.ok) {
+                        const error = await retryResponse.json().catch(() => ({ detail: 'Request failed' }));
+                        throw new Error(error.detail || `HTTP ${retryResponse.status}`);
+                    }
+                    return retryResponse.json();
                 }
             }
 
@@ -88,7 +130,8 @@ const API = {
             const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refresh_token: Auth.getRefreshToken() })
+                body: JSON.stringify({ refresh_token: Auth.getRefreshToken() }),
+                mode: 'cors'
             });
 
             if (!response.ok) {
@@ -213,9 +256,16 @@ const API = {
 // ============= Auth UI Management =============
 const AuthUI = {
     showLoginModal() {
-        document.getElementById('auth-modal').classList.remove('hidden');
-        document.getElementById('login-form').classList.remove('hidden');
-        document.getElementById('register-form').classList.add('hidden');
+        // Check if backend is available first
+        API.checkHealth().then(available => {
+            if (!available) {
+                alert('后端服务未启动，请先启动后端服务:\n\ncd backend && uvicorn app.main:app --reload');
+                return;
+            }
+            document.getElementById('auth-modal').classList.remove('hidden');
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('register-form').classList.add('hidden');
+        });
     },
 
     showRegisterModal() {
@@ -428,3 +478,4 @@ const AuthUI = {
 globalThis.Auth = Auth;
 globalThis.API = API;
 globalThis.AuthUI = AuthUI;
+globalThis.API_BASE_URL = API_BASE_URL;
