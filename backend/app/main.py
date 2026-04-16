@@ -10,13 +10,14 @@ from app.routers import auth, rolls, sync
 
 settings = get_settings()
 
+# Ensure uploads directory exists before StaticFiles mount (which checks at import time)
+os.makedirs("uploads", exist_ok=True)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     await init_db()
-    # Create uploads directory if not exists
-    os.makedirs("uploads", exist_ok=True)
     yield
     # Shutdown
     pass
