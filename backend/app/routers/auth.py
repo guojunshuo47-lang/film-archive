@@ -17,6 +17,7 @@ from app.auth import (
 )
 from app.config import get_settings
 
+
 router = APIRouter(prefix="/auth", tags=["authentication"])
 settings = get_settings()
 security = HTTPBearer()
@@ -78,11 +79,24 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/refresh", response_model=Token)
-async def refresh_token(refresh_data: TokenRefresh):
+async def refresh_token(
+    refresh_data: TokenRefresh,
+    db: AsyncSession = Depends(get_db)
+):
     """刷新访问令牌"""
     payload = decode_token(refresh_data.refresh_token)
 
     if payload is None or payload.sub is None or payload.type != "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Verify the user still exists and is active
+    result = await db.execute(select(User).where(User.id == payload.sub))
+    user = result.scalar_one_or_none()
+    if user is None or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
