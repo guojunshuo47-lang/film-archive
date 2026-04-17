@@ -76,7 +76,7 @@
             overflow: hidden;
             border-radius: 6px;
             border: 1px solid var(--border-color);
-            background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+            background: var(--hover-bg);
             contain: layout style paint;
         }
         .photo-thumb:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateY(-2px); }
@@ -1775,7 +1775,7 @@
                                 const roll = storage.rolls.find(r => r.id == scan.rollId);
                                 const featured = isFeatured(scan.id);
                                 return `
-                                <div class="relative bg-white border border-custom rounded overflow-hidden cursor-pointer scan-item" data-id="${scan.id}">
+                                <div class="relative border border-custom rounded overflow-hidden cursor-pointer scan-item" style="background-color: var(--paper-color)" data-id="${scan.id}">
                                     <span class="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded z-10">#${String(scan.index).padStart(2, '0')}</span>
                                     <img src="${scan.imageData}" alt="" class="w-full aspect-[3/2] object-cover" loading="lazy" onclick="openFullscreenById(${scan.id})">
                                     <div class="flex justify-between items-center p-2 text-xs" style="background-color: var(--hover-bg)">
