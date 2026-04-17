@@ -5,45 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>胶片归档室 - Film Archive</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #F7F3E8;
-            --paper-color: #FFFDF7;
-            --text-color: #4A4035;
-            --border-color: #D4C8B8;
-            --accent-green: #7CB342;
-            --hover-bg: #EDE6D6;
-            --warm-shadow: rgba(139, 125, 107, 0.15);
+            --bg-color: #FAF9F7;
+            --paper-color: #FFFFFF;
+            --text-color: #1A1A1A;
+            --text-secondary: #6B6B6B;
+            --border-color: #E5E0D8;
+            --accent-color: #D97757;
+            --accent-hover: #C4663F;
+            --hover-bg: #F0EDE8;
+            --warm-shadow: rgba(0, 0, 0, 0.06);
+            --shadow-md: rgba(0, 0, 0, 0.10);
+            /* Legacy alias for compatibility */
+            --accent-green: #D97757;
+        }
+        [data-theme="dark"] {
+            --bg-color: #0F0F0F;
+            --paper-color: #1A1A1A;
+            --text-color: #F5F5F5;
+            --text-secondary: #9B9B9B;
+            --border-color: #2E2E2E;
+            --accent-color: #D97757;
+            --accent-hover: #E8895A;
+            --hover-bg: #222222;
+            --warm-shadow: rgba(0, 0, 0, 0.3);
+            --shadow-md: rgba(0, 0, 0, 0.5);
+            --accent-green: #D97757;
         }
         * { box-sizing: border-box; }
         body {
             background-color: var(--bg-color);
-            background-image:
-                radial-gradient(ellipse at top left, rgba(255,248,235,0.8) 0%, transparent 50%),
-                radial-gradient(ellipse at bottom right, rgba(255,245,230,0.6) 0%, transparent 50%);
+            background-image: none;
             color: var(--text-color);
-            font-family: 'ZCOOL XiaoWei', 'Noto Serif SC', serif;
+            font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
             margin: 0;
             min-height: 100vh;
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
-        .handwritten { font-family: 'Ma Shan Zheng', cursive; }
-        .serif { font-family: 'ZCOOL XiaoWei', 'Noto Serif SC', serif; }
+        .handwritten { font-family: 'Inter', 'Noto Sans SC', sans-serif; font-weight: 300; letter-spacing: -0.01em; }
+        .serif { font-family: 'Inter', 'Noto Sans SC', sans-serif; font-weight: 400; }
         .border-custom { border-color: var(--border-color); }
         .hover-custom:hover { background-color: var(--hover-bg); }
-        .paper-bg { background-color: var(--paper-color); box-shadow: 0 1px 3px var(--warm-shadow); }
-        .status-dot { width: 8px; height: 8px; background-color: var(--accent-green); border-radius: 50%; display: inline-block; }
+        .paper-bg { background-color: var(--paper-color); box-shadow: 0 1px 3px var(--warm-shadow); transition: background-color 0.2s ease; }
+        .status-dot { width: 8px; height: 8px; background-color: var(--accent-color); border-radius: 50%; display: inline-block; }
         .section-content { display: none; }
         .section-content.active { display: block; }
         .roll-card {
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: 10px;
             padding: 16px;
-            background: white;
+            background: var(--paper-color);
             transition: all 0.2s ease;
             cursor: pointer;
         }
-        .roll-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); transform: translateY(-1px); }
+        .roll-card:hover { box-shadow: 0 4px 16px var(--warm-shadow); transform: translateY(-1px); border-color: rgba(217,119,87,0.35); }
         .roll-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
         .photo-overview-container {
             display: grid;
@@ -59,7 +76,7 @@
             overflow: hidden;
             border-radius: 6px;
             border: 1px solid var(--border-color);
-            background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+            background: var(--hover-bg);
             contain: layout style paint;
         }
         .photo-thumb:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateY(-2px); }
@@ -224,22 +241,9 @@
             animation: spin 1s linear infinite;
         }
         @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 50; align-items: center; justify-content: center; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); z-index: 50; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
-        .toast {
-            position: fixed;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: var(--text-color);
-            color: var(--paper-color);
-            padding: 12px 24px;
-            border-radius: 8px;
-            opacity: 0;
-            transition: all 0.3s ease;
-            z-index: 100;
-        }
-        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        /* toast base (overridden by the enhanced block below) */
         .grid-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
         .index-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
         .date-group { margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px dashed var(--border-color); }
@@ -264,9 +268,9 @@
         }
         .featured-heart:hover { transform: scale(1.15); background: rgba(255,255,255,1); }
         .featured-heart.active {
-            background: linear-gradient(135deg, #FF6B6B, #EE5A6F);
+            background: linear-gradient(135deg, #D97757, #C4663F);
             color: white;
-            box-shadow: 0 2px 12px rgba(238, 90, 111, 0.4);
+            box-shadow: 0 2px 12px rgba(217, 119, 87, 0.4);
         }
         .featured-heart svg { transition: transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
         .featured-heart:active svg { transform: scale(0.85); }
@@ -285,7 +289,7 @@
             transform: scale(1.1);
         }
         .featured-heart-fullscreen.active {
-            background: linear-gradient(135deg, #FF6B6B, #EE5A6F);
+            background: linear-gradient(135deg, #D97757, #C4663F);
             color: white;
         }
         .featured-heart-fullscreen.active svg { fill: currentColor; }
@@ -296,15 +300,16 @@
             bottom: 80px;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: rgba(31, 41, 55, 0.95);
-            color: white;
+            background: rgba(26, 26, 26, 0.95);
+            color: #FAFAF8;
             padding: 12px 24px;
-            border-radius: 10px;
+            border-radius: 8px;
             opacity: 0;
             transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
             z-index: 1000;
             font-size: 14px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+            border: 1px solid rgba(255,255,255,0.08);
             backdrop-filter: blur(10px);
             display: flex;
             align-items: center;
@@ -329,10 +334,10 @@
             transition: all 0.2s ease;
             z-index: 5;
         }
-        .batch-select-checkbox:hover { border-color: #7CB342; }
+        .batch-select-checkbox:hover { border-color: var(--accent-color); }
         .batch-select-checkbox.selected {
-            background: #7CB342;
-            border-color: #7CB342;
+            background: var(--accent-color);
+            border-color: var(--accent-color);
         }
         .batch-select-checkbox.selected::after {
             content: '✓';
@@ -344,7 +349,7 @@
         .batch-toolbar {
             position: sticky;
             bottom: 20px;
-            background: rgba(31, 41, 55, 0.95);
+            background: rgba(26, 26, 26, 0.95);
             color: white;
             padding: 12px 20px;
             border-radius: 12px;
@@ -360,15 +365,15 @@
         }
         .batch-toolbar.active { display: flex; }
         .stat-card-clickable { cursor: pointer; transition: all 0.2s ease; }
-        .stat-card-clickable:hover { transform: translateY(-2px); box-shadow: 0 4px 12px var(--warm-shadow); }
+        .stat-card-clickable:hover { transform: translateY(-2px); box-shadow: 0 4px 12px var(--warm-shadow); border-color: var(--accent-color) !important; }
 
         /* Film Box Card Style */
         .film-box-card {
-            background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background: linear-gradient(145deg, #111111 0%, #1A1A1A 50%, #222222 100%);
             border-radius: 12px;
             padding: 20px 24px;
             color: white;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08);
             position: relative;
             overflow: hidden;
             aspect-ratio: 1;
@@ -384,16 +389,16 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: linear-gradient(90deg, #e94560, #f39422, #e94560);
+            background: linear-gradient(90deg, #D97757, #E8946F, #D97757);
         }
-        .film-box-card.kodak { background: linear-gradient(145deg, #1a0a00 0%, #2d1a0a 50%, #1a0a00 100%); }
-        .film-box-card.kodak::before { background: linear-gradient(90deg, #ffb347, #ffcc33, #ffb347); }
-        .film-box-card.fujifilm { background: linear-gradient(145deg, #0a1a0a 0%, #0d2d1a 50%, #0a1a0a 100%); }
-        .film-box-card.fujifilm::before { background: linear-gradient(90deg, #4ade80, #22d3ee, #4ade80); }
-        .film-box-card.ilford { background: linear-gradient(145deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%); }
-        .film-box-card.ilford::before { background: linear-gradient(90deg, #6b7280, #9ca3af, #6b7280); }
-        .film-box-card.digital { background: linear-gradient(145deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%); }
-        .film-box-card.digital::before { background: linear-gradient(90deg, #60a5fa, #a78bfa, #60a5fa); }
+        .film-box-card.kodak { background: linear-gradient(145deg, #1A0A00 0%, #2D1800 50%, #1A0A00 100%); }
+        .film-box-card.kodak::before { background: linear-gradient(90deg, #F5A623, #FFC947, #F5A623); }
+        .film-box-card.fujifilm { background: linear-gradient(145deg, #00141A 0%, #002030 50%, #00141A 100%); }
+        .film-box-card.fujifilm::before { background: linear-gradient(90deg, #00BFA5, #00E5FF, #00BFA5); }
+        .film-box-card.ilford { background: linear-gradient(145deg, #0A0A0A 0%, #181818 50%, #0A0A0A 100%); }
+        .film-box-card.ilford::before { background: linear-gradient(90deg, #888888, #BBBBBB, #888888); }
+        .film-box-card.digital { background: linear-gradient(145deg, #1A0F0A 0%, #2D1A10 50%, #1A0F0A 100%); }
+        .film-box-card.digital::before { background: linear-gradient(90deg, #D97757, #E8784A, #D97757); }
 
         .film-box-header {
             display: flex;
@@ -438,16 +443,17 @@
             font-size: 11px;
             opacity: 0.7;
         }
-        .tab-btn { transition: all 0.2s ease; }
-        .tab-btn.active { background-color: #E8E4DE; }
-        .form-input { background-color: transparent; border: 1px solid var(--border-color); transition: all 0.2s ease; }
-        .form-input:focus { outline: none; border-color: #9CA3AF; }
-        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .tab-btn { transition: all 0.2s ease; color: var(--text-secondary); }
+        .tab-btn.active { background-color: var(--hover-bg); color: var(--text-color); font-weight: 500; }
+        .tab-btn:hover:not(.active) { background-color: var(--hover-bg); color: var(--text-color); }
+        .form-input { background-color: var(--paper-color); border: 1px solid var(--border-color); color: var(--text-color); transition: all 0.2s ease; }
+        .form-input:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(217,119,87,0.12); }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
         .auto-fullscreen-hint {
             position: absolute;
             top: 70px;
             right: 20px;
-            background: rgba(124,179,66,0.9);
+            background: rgba(217,119,87,0.92);
             color: white;
             padding: 8px 12px;
             border-radius: 6px;
@@ -456,6 +462,45 @@
             display: none;
         }
         .auto-fullscreen-hint.show { display: block; animation: pulse 2s infinite; }
+        #drop-zone {
+            transition: border-color 0.15s ease, background-color 0.15s ease;
+        }
+        #drop-zone:hover, #drop-zone.drag-over {
+            border-color: var(--accent-color);
+            background-color: rgba(217,119,87,0.04);
+        }
+        .sidebar-item.active {
+            color: var(--text-color);
+            font-weight: 500;
+            border-left: 2px solid var(--accent-color);
+            padding-left: calc(1rem - 2px);
+        }
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: background-color 0.15s ease, transform 0.1s ease;
+            cursor: pointer;
+        }
+        .btn-primary:hover { background-color: var(--accent-hover); }
+        /* Theme toggle */
+        #themeToggle {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--paper-color);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+        }
+        #themeToggle:hover { background: var(--hover-bg); color: var(--text-color); }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
     </style>
     <script src="backend/api.js"></script>
@@ -463,8 +508,16 @@
 <body class="min-h-screen">
     <header class="border-b border-custom px-8 py-4">
         <div class="flex justify-between items-center">
-            <span class="serif text-xl text-gray-700 tracking-wide">film manager</span>
+            <span class="serif text-xl tracking-wide" style="color: var(--text-color); font-weight: 500;">film manager</span>
             <div class="flex items-center gap-2">
+                <button id="themeToggle" onclick="toggleTheme()" title="切换主题">
+                    <svg id="theme-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                    <svg id="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                </button>
                 <button onclick="showOnboarding()" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -610,7 +663,7 @@
                             <textarea id="roll-notes" rows="3" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg resize-none" placeholder="其他备注信息（可选）"></textarea>
                         </div>
                         <div class="pt-4 border-t border-custom">
-                            <button type="submit" class="w-full py-2.5 border border-custom rounded text-sm paper-bg hover-custom">保存胶卷</button>
+                            <button type="submit" class="btn-primary w-full py-2.5 rounded-lg text-sm">保存胶卷</button>
                         </div>
                     </form>
                 </div>
@@ -632,7 +685,7 @@
                         </div>
                         <div id="populate-preview" class="grid-photos hidden"></div>
                         <div class="pt-4 border-t border-custom">
-                            <button onclick="savePopulateScans()" class="w-full py-2.5 border border-custom rounded text-sm paper-bg hover-custom">保存所有扫描</button>
+                            <button onclick="savePopulateScans()" class="btn-primary w-full py-2.5 rounded-lg text-sm">保存所有扫描</button>
                         </div>
                     </div>
                 </div>
@@ -644,7 +697,7 @@
                             <h2 class="handwritten text-2xl text-gray-700">照片概览</h2>
                             <div class="flex items-center gap-3">
                                 <label class="flex items-center gap-2 text-sm cursor-pointer">
-                                    <input type="checkbox" id="auto-fullscreen" class="w-4 h-4 accent-[var(--accent-green)]">
+                                    <input type="checkbox" id="auto-fullscreen" class="w-4 h-4 accent-[#D97757]">
                                     <span>自动全屏</span>
                                 </label>
                                 <button onclick="toggleBatchMode()" id="batch-mode-btn" class="px-3 py-2 text-sm border border-custom rounded hover-custom flex items-center gap-2">
@@ -663,7 +716,7 @@
 
                         <div id="batch-toolbar" class="batch-toolbar">
                             <div class="flex items-center gap-3">
-                                <input type="checkbox" id="batch-select-all" class="w-5 h-5 rounded accent-[var(--accent-green)]" onchange="toggleSelectAll()">
+                                <input type="checkbox" id="batch-select-all" class="w-5 h-5 rounded accent-[#D97757]" onchange="toggleSelectAll()">
                                 <span class="text-sm font-medium">全选</span>
                                 <span id="batch-count" class="text-xs text-gray-400">已选 0 张</span>
                             </div>
@@ -822,7 +875,7 @@
                     <!-- Step 1: Welcome -->
                     <div class="onboarding-step" data-step="1">
                         <div class="text-center mb-8">
-                            <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
+                            <div class="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center shadow-lg" style="background: linear-gradient(135deg, #D97757, #C4663F)">
                                 <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
                                     <circle cx="12" cy="12" r="10" fill="none" stroke="white" stroke-width="2"/>
                                     <circle cx="12" cy="12" r="4" fill="white"/>
@@ -841,29 +894,29 @@
                     <div class="onboarding-step hidden" data-step="2">
                         <h2 class="text-2xl font-light text-gray-800 mb-6 text-center">使用指南</h2>
                         <div class="space-y-4">
-                            <div class="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-transparent">
-                                <div class="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center font-semibold flex-shrink-0">1</div>
+                            <div class="flex items-start gap-4 p-4 rounded-xl" style="background: linear-gradient(to right, rgba(217,119,87,0.08), transparent)">
+                                <div class="w-10 h-10 rounded-full text-white flex items-center justify-center font-semibold flex-shrink-0" style="background-color: #D97757">1</div>
                                 <div>
                                     <h3 class="font-medium text-gray-800 mb-1">登记胶卷</h3>
                                     <p class="text-gray-500 text-sm">只需填写胶卷名称即可创建。可选填胶片型号（51种）、画幅（135/120/数码等）、拍摄设备、摄影师等信息。</p>
                                 </div>
                             </div>
-                            <div class="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-blue-50 to-transparent">
-                                <div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold flex-shrink-0">2</div>
+                            <div class="flex items-start gap-4 p-4 rounded-xl" style="background: linear-gradient(to right, rgba(217,119,87,0.06), transparent)">
+                                <div class="w-10 h-10 rounded-full text-white flex items-center justify-center font-semibold flex-shrink-0" style="background-color: #C4663F">2</div>
                                 <div>
                                     <h3 class="font-medium text-gray-800 mb-1">上传照片</h3>
                                     <p class="text-gray-500 text-sm">在"填充胶卷"中批量上传照片，支持拖拽。保存后自动跳转到预览页面，无需手动切换。</p>
                                 </div>
                             </div>
-                            <div class="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-green-50 to-transparent">
-                                <div class="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold flex-shrink-0">3</div>
+                            <div class="flex items-start gap-4 p-4 rounded-xl" style="background: linear-gradient(to right, rgba(217,119,87,0.04), transparent)">
+                                <div class="w-10 h-10 rounded-full text-white flex items-center justify-center font-semibold flex-shrink-0" style="background-color: #1A1A1A">3</div>
                                 <div>
                                     <h3 class="font-medium text-gray-800 mb-1">浏览与管理</h3>
                                     <p class="text-gray-500 text-sm">照片概览显示胶片盒风格卡片，包含画幅、ISO、设备信息。点击心形收藏，支持批量删除。</p>
                                 </div>
                             </div>
-                            <div class="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-purple-50 to-transparent">
-                                <div class="w-10 h-10 rounded-full bg-purple-500 text-white flex items-center justify-center font-semibold flex-shrink-0">4</div>
+                            <div class="flex items-start gap-4 p-4 rounded-xl" style="background: linear-gradient(to right, rgba(217,119,87,0.04), transparent)">
+                                <div class="w-10 h-10 rounded-full text-white flex items-center justify-center font-semibold flex-shrink-0" style="background-color: #2E2E2E">4</div>
                                 <div>
                                     <h3 class="font-medium text-gray-800 mb-1">快捷入口</h3>
                                     <p class="text-gray-500 text-sm">归档概览的统计卡片可点击：胶卷总数→管理胶卷，扫描张数→查看档案，胶片种类→胶片字典。</p>
@@ -912,14 +965,14 @@
                 <div class="px-8 pb-8 pt-4 border-t border-gray-100">
                     <div class="flex justify-between items-center">
                         <div class="flex gap-2">
-                            <span class="w-2 h-2 rounded-full bg-gray-300 onboarding-dot active" data-step="1"></span>
+                            <span class="w-2 h-2 rounded-full bg-[#D97757] onboarding-dot active" data-step="1"></span>
                             <span class="w-2 h-2 rounded-full bg-gray-300 onboarding-dot" data-step="2"></span>
                             <span class="w-2 h-2 rounded-full bg-gray-300 onboarding-dot" data-step="3"></span>
                         </div>
                         <div class="flex gap-3">
                             <button id="onboarding-prev" onclick="prevOnboardingStep()" class="px-4 py-2 text-gray-500 hover:text-gray-700 hidden">上一步</button>
-                            <button id="onboarding-next" onclick="nextOnboardingStep()" class="px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors">下一步</button>
-                            <button id="onboarding-finish" onclick="closeOnboarding()" class="px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors hidden">开始使用</button>
+                            <button id="onboarding-next" onclick="nextOnboardingStep()" class="btn-primary px-6 py-2 rounded-lg transition-colors">下一步</button>
+                            <button id="onboarding-finish" onclick="closeOnboarding()" class="btn-primary px-6 py-2 rounded-lg transition-colors hidden">开始使用</button>
                         </div>
                     </div>
                 </div>
@@ -1715,17 +1768,17 @@
                     <div class="date-group">
                         <div class="flex items-center gap-3 mb-4 pb-2 border-b border-custom">
                             <span class="handwritten text-xl">${dateDisplay}</span>
-                            <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">${scans.length} 张</span>
+                            <span class="text-xs text-gray-500 px-2 py-1 rounded-full" style="background-color: var(--hover-bg)">${scans.length} 张</span>
                         </div>
                         <div class="index-grid">
                             ${scans.map(scan => {
                                 const roll = storage.rolls.find(r => r.id == scan.rollId);
                                 const featured = isFeatured(scan.id);
                                 return `
-                                <div class="relative bg-white border border-custom rounded overflow-hidden cursor-pointer scan-item" data-id="${scan.id}">
+                                <div class="relative border border-custom rounded overflow-hidden cursor-pointer scan-item" style="background-color: var(--paper-color)" data-id="${scan.id}">
                                     <span class="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded z-10">#${String(scan.index).padStart(2, '0')}</span>
                                     <img src="${scan.imageData}" alt="" class="w-full aspect-[3/2] object-cover" loading="lazy" onclick="openFullscreenById(${scan.id})">
-                                    <div class="flex justify-between items-center p-2 bg-gray-50 text-xs">
+                                    <div class="flex justify-between items-center p-2 text-xs" style="background-color: var(--hover-bg)">
                                         <span class="text-gray-600 font-mono">${String(scan.id).slice(-3)}</span>
                                         <span class="text-gray-400 truncate max-w-[80px]">${getFilmName(roll?.filmId).split(' ').pop()}</span>
                                     </div>
@@ -1837,16 +1890,16 @@
         if (dropZone) {
             dropZone.addEventListener('dragover', (e) => {
                 e.preventDefault();
-                dropZone.classList.add('border-gray-400');
+                dropZone.classList.add('drag-over');
             });
 
             dropZone.addEventListener('dragleave', () => {
-                dropZone.classList.remove('border-gray-400');
+                dropZone.classList.remove('drag-over');
             });
 
             dropZone.addEventListener('drop', (e) => {
                 e.preventDefault();
-                dropZone.classList.remove('border-gray-400');
+                dropZone.classList.remove('drag-over');
                 handleFiles(e.dataTransfer.files);
             });
         }
@@ -2025,7 +2078,7 @@
                 const dateDisplay = roll.date ? new Date(roll.date).toLocaleDateString('zh-CN') : '未设定日期';
 
                 return `
-                    <div class="flex items-center justify-between p-4 border border-custom rounded-lg hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center justify-between p-4 border border-custom rounded-lg hover:bg-[var(--hover-bg)] transition-colors">
                         <div class="flex-1">
                             <div class="font-medium text-gray-800">${roll.name || '未命名胶卷'}</div>
                             <div class="text-sm text-gray-500 mt-1">
@@ -2139,7 +2192,7 @@
 
             if (batchMode) {
                 grid.classList.add('batch-mode');
-                btn.classList.add('active', 'bg-gray-800', 'text-white');
+                btn.classList.add('active', 'bg-[#D97757]', 'text-white');
                 toolbar.classList.add('active');
                 selectedScans.clear();
                 document.getElementById('batch-select-all').checked = false;
@@ -2160,7 +2213,7 @@
             const toolbar = document.getElementById('batch-toolbar');
 
             grid.classList.remove('batch-mode');
-            btn.classList.remove('active', 'bg-gray-800', 'text-white');
+            btn.classList.remove('active', 'bg-[#D97757]', 'text-white');
             toolbar.classList.remove('active');
             document.getElementById('batch-select-all').checked = false;
 
@@ -2225,6 +2278,25 @@
             showToast(`已删除 ${count} 张照片`);
         }
 
+        // Theme toggle
+        function updateThemeIcon() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.getElementById('theme-icon-sun').style.display = isDark ? 'block' : 'none';
+            document.getElementById('theme-icon-moon').style.display = isDark ? 'none' : 'block';
+        }
+        function toggleTheme() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const newTheme = isDark ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('film_theme', newTheme);
+            updateThemeIcon();
+        }
+        (function initTheme() {
+            const saved = localStorage.getItem('film_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', saved);
+            updateThemeIcon();
+        })();
+
         // Onboarding
         let currentOnboardingStep = 1;
         const totalOnboardingSteps = 3;
@@ -2265,7 +2337,7 @@
             document.querySelectorAll('.onboarding-dot').forEach(dot => {
                 const step = parseInt(dot.dataset.step);
                 dot.classList.toggle('active', step === currentOnboardingStep);
-                dot.classList.toggle('bg-gray-800', step === currentOnboardingStep);
+                dot.classList.toggle('bg-[#D97757]', step === currentOnboardingStep);
                 dot.classList.toggle('bg-gray-300', step !== currentOnboardingStep);
             });
 
