@@ -502,11 +502,71 @@
         }
         #themeToggle:hover { background: var(--hover-bg); color: var(--text-color); }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+        /* ── Mobile Navigation ── */
+        .mobile-nav {
+            display: none;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--paper-color);
+            padding: 0 4px;
+        }
+        .mobile-nav::-webkit-scrollbar { display: none; }
+        .mobile-nav-inner {
+            display: flex;
+            white-space: nowrap;
+            gap: 2px;
+            padding: 6px 8px;
+        }
+        .mobile-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+        .mobile-nav-btn.active {
+            background: var(--hover-bg);
+            color: var(--text-color);
+            font-weight: 500;
+        }
+        .mobile-nav-btn:hover { background: var(--hover-bg); color: var(--text-color); }
+
+        /* ── Responsive layout ── */
+        @media (max-width: 767px) {
+            .mobile-nav { display: block; }
+            .desktop-sidebar { display: none !important; }
+            main { flex-direction: column; padding: 12px 16px; gap: 12px; }
+            header { padding: 10px 16px; }
+            .header-btn-text { display: none; }
+            .section-panel { padding: 16px !important; }
+            .stat-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+            .form-row { flex-direction: column !important; align-items: stretch !important; gap: 6px !important; }
+            .form-label { width: auto !important; }
+            .photo-header { flex-wrap: wrap; gap: 10px; }
+            .photo-header-controls { flex-wrap: wrap; gap: 8px; }
+            .roll-select-full { width: 100% !important; min-width: unset !important; }
+            .photo-overview-container { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important; }
+            .grid-photos { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important; gap: 10px !important; }
+            .film-box-card { max-width: 100% !important; }
+        }
+        @media (min-width: 768px) {
+            .mobile-nav { display: none; }
+        }
     </style>
     <script src="backend/api.js"></script>
 </head>
 <body class="min-h-screen">
-    <header class="border-b border-custom px-8 py-4">
+    <header class="border-b border-custom px-4 md:px-8 py-2.5 md:py-4">
         <div class="flex justify-between items-center">
             <span class="serif text-xl tracking-wide" style="color: var(--text-color); font-weight: 500;">film manager</span>
             <div class="flex items-center gap-2">
@@ -518,36 +578,70 @@
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                     </svg>
                 </button>
-                <button onclick="showOnboarding()" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors">
+                <button onclick="showOnboarding()" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
                         <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                         <line x1="12" y1="17" x2="12.01" y2="17"></line>
                     </svg>
-                    入门
+                    <span class="hidden sm:inline">入门</span>
                 </button>
-                <button id="auth-button" onclick="AuthUI.showLoginModal()" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors">
+                <button id="auth-button" onclick="AuthUI.showLoginModal()" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                         <circle cx="12" cy="7" r="4"></circle>
                     </svg>
-                    登录
+                    <span class="hidden sm:inline">登录</span>
                 </button>
                 <div id="user-info" class="hidden items-center gap-2"></div>
-                <button id="sync-button" onclick="AuthUI.syncFromServer()" class="hidden flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors" title="从服务器同步">
+                <button id="sync-button" onclick="AuthUI.syncFromServer()" class="hidden flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors" title="从服务器同步">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="23 4 23 10 17 10"></polyline>
                         <polyline points="1 20 1 14 7 14"></polyline>
                         <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
                     </svg>
-                    同步
+                    <span class="hidden sm:inline">同步</span>
                 </button>
             </div>
         </div>
     </header>
 
-    <main class="flex px-8 py-6 gap-6">
-        <aside class="w-56 flex-shrink-0 space-y-4">
+    <!-- Mobile navigation (visible only on small screens) -->
+    <div class="mobile-nav" id="mobile-nav">
+        <div class="mobile-nav-inner">
+            <button class="mobile-nav-btn active" id="mob-menu-overview" onclick="showSection('overview')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                概览
+            </button>
+            <button class="mobile-nav-btn" id="mob-menu-scans" onclick="showSection('scans')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 2v20M17 2v20M2 12h20"/></svg>
+                扫描档案
+            </button>
+            <button class="mobile-nav-btn" id="mob-menu-works" onclick="showSection('works')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                修改作品
+            </button>
+            <button class="mobile-nav-btn" id="mob-menu-display" onclick="showSection('display')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                精选
+            </button>
+            <button class="mobile-nav-btn" id="mob-menu-darkroom" onclick="showSection('darkroom')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 000 20"/></svg>
+                暗房
+            </button>
+            <button class="mobile-nav-btn" onclick="showModal('filmDictModal')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+                胶片
+            </button>
+            <button class="mobile-nav-btn" onclick="showModal('artistDictModal')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                摄影师
+            </button>
+        </div>
+    </div>
+
+    <main class="flex px-4 md:px-8 py-4 md:py-6 gap-4 md:gap-6">
+        <aside class="desktop-sidebar w-56 flex-shrink-0 space-y-4">
             <div class="border border-custom rounded-lg overflow-hidden paper-bg">
                 <nav class="flex flex-col text-sm">
                     <a href="#" class="sidebar-item active px-4 py-3 border-b border-custom/50 hover:bg-[var(--hover-bg)] transition-colors" id="menu-overview" onclick="showSection('overview')">归档概览</a>
@@ -568,9 +662,9 @@
         <section class="flex-1" id="main-content">
             <!-- Overview Section -->
             <div class="section-content active" id="section-overview">
-                <div class="border border-custom rounded-xl paper-bg p-6">
+                <div class="border border-custom rounded-xl paper-bg p-4 md:p-6 section-panel">
                     <h2 class="handwritten text-2xl text-gray-700 mb-6">归档概览</h2>
-                    <div class="grid grid-cols-4 gap-4 mb-8">
+                    <div class="stat-grid grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
                         <div class="border border-custom rounded-lg p-4 text-center stat-card-clickable" onclick="showRollsModal()">
                             <div class="text-3xl font-light text-gray-600" id="stat-rolls">0</div>
                             <div class="text-sm text-gray-500 mt-1">胶卷总数</div>
@@ -596,7 +690,7 @@
 
             <!-- Scans Section -->
             <div class="section-content" id="section-scans">
-                <div class="border border-custom rounded-xl paper-bg p-6">
+                <div class="border border-custom rounded-xl paper-bg p-4 md:p-6 section-panel">
                     <h2 class="handwritten text-2xl text-gray-700 mb-6">胶片扫描档案</h2>
                     <div id="scans-index-view"></div>
                 </div>
@@ -604,7 +698,7 @@
 
             <!-- Display Section -->
             <div class="section-content" id="section-display">
-                <div class="border border-custom rounded-xl paper-bg p-6">
+                <div class="border border-custom rounded-xl paper-bg p-4 md:p-6 section-panel">
                     <h2 class="handwritten text-2xl text-gray-700 mb-6">精选展示</h2>
                     <div id="featured-display"></div>
                 </div>
@@ -619,21 +713,21 @@
                 </div>
 
                 <!-- Log a Roll -->
-                <div class="section-content border border-custom rounded-xl paper-bg p-6" id="content-log">
+                <div class="section-content border border-custom rounded-xl paper-bg p-4 md:p-6 section-panel" id="content-log">
                     <h2 class="handwritten text-2xl text-gray-700 mb-6">登记新胶卷</h2>
                     <form id="form-log-roll" class="space-y-4">
-                        <div class="flex items-center gap-4">
-                            <label class="text-sm w-28"><span class="text-red-500">*</span> 胶卷名称:</label>
+                        <div class="form-row flex items-center gap-4 sm:gap-4">
+                            <label class="form-label text-sm sm:w-28 text-gray-600"><span class="text-red-500">*</span> 胶卷名称:</label>
                             <input type="text" id="roll-name" required class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg" placeholder="例如：2024年春节胶卷">
                         </div>
-                        <div class="flex items-center gap-4">
-                            <label class="text-sm w-28">胶片型号:</label>
+                        <div class="form-row flex items-center gap-4 sm:gap-4">
+                            <label class="form-label text-sm sm:w-28 text-gray-600">胶片型号:</label>
                             <select id="roll-film" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg">
                                 <option value="">请选择胶片型号（可选）</option>
                             </select>
                         </div>
-                        <div class="flex items-center gap-4">
-                            <label class="text-sm w-28">画幅:</label>
+                        <div class="form-row flex items-center gap-4 sm:gap-4">
+                            <label class="form-label text-sm sm:w-28 text-gray-600">画幅:</label>
                             <select id="roll-format" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg">
                                 <option value="135">135 / 35mm</option>
                                 <option value="120">120 / 中画幅</option>
@@ -646,20 +740,20 @@
                                 <option value="phone">手机</option>
                             </select>
                         </div>
-                        <div class="flex items-center gap-4">
-                            <label class="text-sm w-28">拍摄设备:</label>
+                        <div class="form-row flex items-center gap-4 sm:gap-4">
+                            <label class="form-label text-sm sm:w-28 text-gray-600">拍摄设备:</label>
                             <input type="text" id="roll-camera" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg" placeholder="例如：Leica M6 / iPhone 15 Pro / Sony A7M4（可选）">
                         </div>
-                        <div class="flex items-center gap-4">
-                            <label class="text-sm w-28">摄影师:</label>
+                        <div class="form-row flex items-center gap-4 sm:gap-4">
+                            <label class="form-label text-sm sm:w-28 text-gray-600">摄影师:</label>
                             <select id="roll-artist" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg"></select>
                         </div>
-                        <div class="flex items-center gap-4">
-                            <label class="text-sm w-28">拍摄日期:</label>
+                        <div class="form-row flex items-center gap-4 sm:gap-4">
+                            <label class="form-label text-sm sm:w-28 text-gray-600">拍摄日期:</label>
                             <input type="date" id="roll-date" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg">
                         </div>
-                        <div class="flex gap-4">
-                            <label class="text-sm w-28 pt-2">备注:</label>
+                        <div class="form-row flex gap-4">
+                            <label class="form-label text-sm sm:w-28 pt-0 sm:pt-2 text-gray-600">备注:</label>
                             <textarea id="roll-notes" rows="3" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg resize-none" placeholder="其他备注信息（可选）"></textarea>
                         </div>
                         <div class="pt-4 border-t border-custom">
@@ -669,11 +763,11 @@
                 </div>
 
                 <!-- Populate a Roll -->
-                <div class="section-content border border-custom rounded-xl paper-bg p-6" id="content-populate">
+                <div class="section-content border border-custom rounded-xl paper-bg p-4 md:p-6 section-panel" id="content-populate">
                     <h2 class="handwritten text-2xl text-gray-700 mb-6">批量上传扫描</h2>
                     <div class="space-y-4" id="populate-form">
-                        <div class="flex items-center gap-4">
-                            <label class="text-sm w-28">选择胶卷:</label>
+                        <div class="form-row flex items-center gap-4 sm:gap-4">
+                            <label class="form-label text-sm sm:w-28 text-gray-600">选择胶卷:</label>
                             <select id="populate-roll" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg">
                                 <option value="">请选择胶卷</option>
                             </select>
@@ -692,10 +786,10 @@
 
                 <!-- Photo Overview -->
                 <div class="section-content active" id="content-edit">
-                    <div class="border border-custom rounded-xl paper-bg p-6 relative">
-                        <div class="flex items-center justify-between mb-6">
+                    <div class="border border-custom rounded-xl paper-bg p-4 md:p-6 section-panel relative">
+                        <div class="photo-header flex flex-wrap items-center justify-between mb-6 gap-3">
                             <h2 class="handwritten text-2xl text-gray-700">照片概览</h2>
-                            <div class="flex items-center gap-3">
+                            <div class="photo-header-controls flex flex-wrap items-center gap-3">
                                 <label class="flex items-center gap-2 text-sm cursor-pointer">
                                     <input type="checkbox" id="auto-fullscreen" class="w-4 h-4 accent-[#D97757]">
                                     <span>自动全屏</span>
@@ -706,7 +800,7 @@
                                     </svg>
                                     批量删除
                                 </button>
-                                <select id="preview-roll-select" class="form-input px-4 py-2 rounded text-sm paper-bg min-w-[250px]" onchange="onRollSelectChange()">
+                                <select id="preview-roll-select" class="roll-select-full form-input px-3 py-2 rounded text-sm paper-bg min-w-[200px]" onchange="onRollSelectChange()">
                                     <option value="">请选择胶卷</option>
                                 </select>
                             </div>
@@ -762,7 +856,7 @@
 
             <!-- Darkroom Section -->
             <div class="section-content" id="section-darkroom">
-                <div class="border border-custom rounded-xl paper-bg p-12 text-center">
+                <div class="border border-custom rounded-xl paper-bg p-8 md:p-12 section-panel text-center">
                     <div class="mb-6">
                         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto text-gray-400">
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -781,7 +875,7 @@
     <!-- Fullscreen Viewer - Enhanced -->
     <div class="fullscreen-viewer" id="fullscreenViewer">
         <div class="fullscreen-toolbar">
-            <div class="flex items-center gap-4">
+            <div class="form-row flex items-center gap-4 sm:gap-4">
                 <span id="fullscreen-counter" class="text-sm font-medium">1 / 10</span>
                 <span id="fullscreen-film-info" class="text-sm text-gray-400"></span>
             </div>
@@ -1162,22 +1256,29 @@
         function showSection(section) {
             document.querySelectorAll('.section-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.mobile-nav-btn').forEach(el => el.classList.remove('active'));
 
             const sectionMap = {
                 overview: () => {
                     document.getElementById('section-overview').classList.add('active');
                     document.getElementById('menu-overview').classList.add('active');
+                    const mob = document.getElementById('mob-menu-overview');
+                    if (mob) mob.classList.add('active');
                     updateStats();
                     renderRecentPhotos();
                 },
                 scans: () => {
                     document.getElementById('section-scans').classList.add('active');
                     document.getElementById('menu-scans').classList.add('active');
+                    const mob = document.getElementById('mob-menu-scans');
+                    if (mob) mob.classList.add('active');
                     renderScansList();
                 },
                 works: () => {
                     document.getElementById('section-works').classList.add('active');
                     document.getElementById('menu-works').classList.add('active');
+                    const mob = document.getElementById('mob-menu-works');
+                    if (mob) mob.classList.add('active');
                     populateSelects();
                     populatePreviewRollSelect();
                     renderPhotoOverview();
@@ -1185,10 +1286,14 @@
                 darkroom: () => {
                     document.getElementById('section-darkroom').classList.add('active');
                     document.getElementById('menu-darkroom').classList.add('active');
+                    const mob = document.getElementById('mob-menu-darkroom');
+                    if (mob) mob.classList.add('active');
                 },
                 display: () => {
                     document.getElementById('section-display').classList.add('active');
                     document.getElementById('menu-display').classList.add('active');
+                    const mob = document.getElementById('mob-menu-display');
+                    if (mob) mob.classList.add('active');
                     renderFeaturedDisplay();
                 }
             };
