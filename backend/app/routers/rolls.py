@@ -23,43 +23,41 @@ async def list_rolls(
     current_user: User = Depends(get_current_user)
 ):
     """获取当前用户的所有胶卷"""
-    query = select(Roll).where(Roll.user_id == current_user.id)
+    query = (
+        select(Roll, func.count(Photo.id).label("photo_count"))
+        .outerjoin(Photo, Photo.roll_id == Roll.id)
+        .where(Roll.user_id == current_user.id)
+        .group_by(Roll.id)
+        .order_by(Roll.created_at.desc())
+    )
 
     if status:
         query = query.where(Roll.status == status)
 
-    query = query.order_by(Roll.created_at.desc())
-
     result = await db.execute(query)
-    rolls = result.scalars().all()
+    rows = result.all()
 
-    # 计算每个胶卷的照片数量
-    roll_responses = []
-    for roll in rolls:
-        photo_count_result = await db.execute(
-            select(func.count()).where(Photo.roll_id == roll.id)
+    roll_responses = [
+        RollResponse(
+            id=roll.id,
+            user_id=roll.user_id,
+            roll_id=roll.roll_id,
+            film_stock=roll.film_stock,
+            camera=roll.camera,
+            iso=roll.iso,
+            total_frames=roll.total_frames,
+            status=roll.status,
+            date_created=roll.date_created,
+            date_finished=roll.date_finished,
+            date_developed=roll.date_developed,
+            note=roll.note,
+            custom_data=roll.custom_data or {},
+            created_at=roll.created_at,
+            updated_at=roll.updated_at,
+            photo_count=photo_count
         )
-        photo_count = photo_count_result.scalar()
-
-        roll_dict = {
-            "id": roll.id,
-            "user_id": roll.user_id,
-            "roll_id": roll.roll_id,
-            "film_stock": roll.film_stock,
-            "camera": roll.camera,
-            "iso": roll.iso,
-            "total_frames": roll.total_frames,
-            "status": roll.status,
-            "date_created": roll.date_created,
-            "date_finished": roll.date_finished,
-            "date_developed": roll.date_developed,
-            "note": roll.note,
-            "custom_data": roll.custom_data or {},
-            "created_at": roll.created_at,
-            "updated_at": roll.updated_at,
-            "photo_count": photo_count
-        }
-        roll_responses.append(RollResponse(**roll_dict))
+        for roll, photo_count in rows
+    ]
 
     return RollListResponse(items=roll_responses, total=len(roll_responses))
 

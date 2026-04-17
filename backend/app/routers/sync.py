@@ -33,7 +33,7 @@ async def sync_data(
                 select(Roll).where(
                     and_(
                         Roll.user_id == current_user.id,
-                        Roll.roll_id == roll_dict.get("rollId") or roll_dict.get("roll_id")
+                        Roll.roll_id == (roll_dict.get("rollId") or roll_dict.get("roll_id"))
                     )
                 )
             )
@@ -73,7 +73,7 @@ async def sync_data(
                 select(Roll).where(
                     and_(
                         Roll.user_id == current_user.id,
-                        Roll.roll_id == photo_dict.get("rollId") or photo_dict.get("roll_id")
+                        Roll.roll_id == (photo_dict.get("rollId") or photo_dict.get("roll_id"))
                     )
                 )
             )
@@ -86,7 +86,7 @@ async def sync_data(
                         and_(
                             Photo.user_id == current_user.id,
                             Photo.roll_id == roll.id,
-                            Photo.frame_number == photo_dict.get("frameNumber") or photo_dict.get("frame_number")
+                            Photo.frame_number == (photo_dict.get("frameNumber") or photo_dict.get("frame_number"))
                         )
                     )
                 )
