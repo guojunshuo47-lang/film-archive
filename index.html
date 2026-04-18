@@ -5,33 +5,69 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>胶片归档室 - Film Archive</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
+            /* Neutrals */
             --bg-color: #FAF9F7;
             --paper-color: #FFFFFF;
+            --hover-bg: #F0EDE8;
+            --border-color: #E5E0D8;
+            /* Text */
             --text-color: #1A1A1A;
             --text-secondary: #6B6B6B;
-            --border-color: #E5E0D8;
+            --text-tertiary: #9CA3AF;
+            /* Brand accent */
             --accent-color: #D97757;
             --accent-hover: #C4663F;
-            --hover-bg: #F0EDE8;
-            --warm-shadow: rgba(0, 0, 0, 0.06);
-            --shadow-md: rgba(0, 0, 0, 0.10);
-            /* Legacy alias for compatibility */
+            --accent-soft: rgba(217,119,87,0.12);
+            --accent-glow: rgba(217,119,87,0.40);
+            /* Film brand */
+            --film-kodak-a: #F5A623; --film-kodak-b: #FFC947;
+            --film-fuji-a: #00BFA5;  --film-fuji-b: #00E5FF;
+            --film-ilford-a: #888888;--film-ilford-b: #BBBBBB;
+            --film-digital-a: #D97757;--film-digital-b: #E8784A;
+            /* Semantic */
+            --success: #3F8F5E; --danger: #C74848; --warning: #C08B2A; --info: #4A7BA6;
+            /* Elevation */
+            --warm-shadow: rgba(0,0,0,0.06);
+            --shadow-sm:  0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md:  0 4px 16px rgba(0,0,0,0.06);
+            --shadow-lg:  0 8px 32px rgba(0,0,0,0.10);
+            --shadow-film:0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08);
+            /* Radii */
+            --radius-xs: 3px; --radius-sm: 6px; --radius-md: 8px;
+            --radius-lg: 10px; --radius-xl: 12px; --radius-2xl: 20px; --radius-full: 9999px;
+            /* Spacing */
+            --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px;
+            --space-5:20px; --space-6:24px; --space-8:32px; --space-10:40px; --space-12:48px;
+            /* Motion */
+            --ease-std: cubic-bezier(0.2,0,0.2,1);
+            --ease-pop: cubic-bezier(0.68,-0.55,0.265,1.55);
+            --dur-fast: 0.15s; --dur-std: 0.2s; --dur-slow: 0.3s;
+            /* Typography */
+            --font-sans: 'Inter','Noto Sans SC',system-ui,-apple-system,sans-serif;
+            --font-mono: 'Courier New',ui-monospace,SFMono-Regular,Menlo,monospace;
+            --fs-xs:11px; --fs-sm:13px; --fs-base:14px; --fs-md:16px;
+            --fs-lg:18px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:28px; --fs-4xl:32px;
+            /* Legacy alias */
             --accent-green: #D97757;
         }
         [data-theme="dark"] {
             --bg-color: #0F0F0F;
             --paper-color: #1A1A1A;
+            --hover-bg: #222222;
+            --border-color: #2E2E2E;
             --text-color: #F5F5F5;
             --text-secondary: #9B9B9B;
-            --border-color: #2E2E2E;
+            --text-tertiary: #6B6B6B;
             --accent-color: #D97757;
             --accent-hover: #E8895A;
-            --hover-bg: #222222;
-            --warm-shadow: rgba(0, 0, 0, 0.3);
-            --shadow-md: rgba(0, 0, 0, 0.5);
+            --accent-soft: rgba(217,119,87,0.18);
+            --warm-shadow: rgba(0,0,0,0.30);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.30);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.30);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.50);
             --accent-green: #D97757;
         }
         * { box-sizing: border-box; }
@@ -346,6 +382,7 @@
             font-weight: bold;
         }
         .photo-thumb.batch-mode .batch-select-checkbox { display: flex; }
+        .photo-thumb.batch-mode .fa-check { display: flex; }
         .batch-toolbar {
             position: sticky;
             bottom: 20px;
@@ -392,13 +429,13 @@
             background: linear-gradient(90deg, #D97757, #E8946F, #D97757);
         }
         .film-box-card.kodak { background: linear-gradient(145deg, #1A0A00 0%, #2D1800 50%, #1A0A00 100%); }
-        .film-box-card.kodak::before { background: linear-gradient(90deg, #F5A623, #FFC947, #F5A623); }
+        .film-box-card.kodak::before { background: linear-gradient(90deg, var(--film-kodak-a), var(--film-kodak-b), var(--film-kodak-a)); }
         .film-box-card.fujifilm { background: linear-gradient(145deg, #00141A 0%, #002030 50%, #00141A 100%); }
-        .film-box-card.fujifilm::before { background: linear-gradient(90deg, #00BFA5, #00E5FF, #00BFA5); }
+        .film-box-card.fujifilm::before { background: linear-gradient(90deg, var(--film-fuji-a), var(--film-fuji-b), var(--film-fuji-a)); }
         .film-box-card.ilford { background: linear-gradient(145deg, #0A0A0A 0%, #181818 50%, #0A0A0A 100%); }
-        .film-box-card.ilford::before { background: linear-gradient(90deg, #888888, #BBBBBB, #888888); }
+        .film-box-card.ilford::before { background: linear-gradient(90deg, var(--film-ilford-a), var(--film-ilford-b), var(--film-ilford-a)); }
         .film-box-card.digital { background: linear-gradient(145deg, #1A0F0A 0%, #2D1A10 50%, #1A0F0A 100%); }
-        .film-box-card.digital::before { background: linear-gradient(90deg, #D97757, #E8784A, #D97757); }
+        .film-box-card.digital::before { background: linear-gradient(90deg, var(--film-digital-a), var(--film-digital-b), var(--film-digital-a)); }
 
         .film-box-header {
             display: flex;
@@ -485,22 +522,6 @@
             cursor: pointer;
         }
         .btn-primary:hover { background-color: var(--accent-hover); }
-        /* Theme toggle */
-        #themeToggle {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background: var(--paper-color);
-            color: var(--text-secondary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.15s ease;
-            flex-shrink: 0;
-        }
-        #themeToggle:hover { background: var(--hover-bg); color: var(--text-color); }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
         /* ── Mobile Navigation ── */
@@ -562,45 +583,372 @@
         @media (min-width: 768px) {
             .mobile-nav { display: none; }
         }
+
+        /* ── Skeuomorphic Button System ── */
+        .btn-archive, .btn-archive-paper, .btn-archive-ghost {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 18px;
+            font-family: var(--font-sans);
+            font-size: var(--fs-sm);
+            font-weight: 500;
+            line-height: 1;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--dur-fast) var(--ease-std);
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .btn-archive {
+            background: linear-gradient(180deg, #E8845E 0%, #D97757 45%, #C96A48 100%);
+            color: white;
+            border: 1px solid #A85838;
+            box-shadow: 0 1px 0 rgba(255,255,255,0.15) inset, 0 2px 0 #8F4A2E, 0 3px 6px rgba(0,0,0,0.18);
+        }
+        .btn-archive:hover {
+            background: linear-gradient(180deg, #EE8E6A 0%, #E08462 45%, #D17350 100%);
+            box-shadow: 0 1px 0 rgba(255,255,255,0.15) inset, 0 2px 0 #8F4A2E, 0 4px 10px rgba(0,0,0,0.22);
+            transform: translateY(-1px);
+        }
+        .btn-archive:active {
+            background: linear-gradient(180deg, #C46A44 0%, #D97757 100%);
+            box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 0 0 #8F4A2E, 0 1px 3px rgba(0,0,0,0.15);
+            transform: translateY(2px);
+        }
+        .btn-archive:disabled { opacity: 0.5; cursor: not-allowed; transform: none; pointer-events: none; }
+
+        .btn-archive-paper {
+            background: linear-gradient(180deg, #FFFFFF 0%, #F4F1EA 100%);
+            color: var(--text-color);
+            border: 1px solid #C9C1B2;
+            box-shadow: 0 1px 0 rgba(255,255,255,0.9) inset, 0 2px 0 #D8D0BE, 0 3px 6px rgba(0,0,0,0.07);
+        }
+        .btn-archive-paper:hover {
+            background: linear-gradient(180deg, #FFFFFF 0%, #EBE7DF 100%);
+            box-shadow: 0 1px 0 rgba(255,255,255,0.9) inset, 0 2px 0 #D8D0BE, 0 4px 10px rgba(0,0,0,0.10);
+            transform: translateY(-1px);
+        }
+        .btn-archive-paper:active {
+            background: linear-gradient(180deg, #EBE7DF 0%, #F4F1EA 100%);
+            box-shadow: 0 0px 0 #D8D0BE, 0 1px 3px rgba(0,0,0,0.07);
+            transform: translateY(2px);
+        }
+        [data-theme="dark"] .btn-archive-paper {
+            background: linear-gradient(180deg, #2E2E2E 0%, #242424 100%);
+            color: var(--text-color);
+            border-color: #3E3E3E;
+            box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 2px 0 #181818, 0 3px 6px rgba(0,0,0,0.25);
+        }
+        [data-theme="dark"] .btn-archive-paper:hover {
+            background: linear-gradient(180deg, #363636 0%, #2C2C2C 100%);
+        }
+        .btn-archive-paper:disabled { opacity: 0.5; cursor: not-allowed; transform: none; pointer-events: none; }
+
+        .btn-archive-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid transparent;
+            box-shadow: none;
+        }
+        .btn-archive-ghost:hover {
+            background: var(--hover-bg);
+            color: var(--text-color);
+            border-color: var(--border-color);
+        }
+        .btn-archive-ghost:active { background: var(--hover-bg); transform: translateY(1px); }
+
+        .btn-stamp {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #FFFFFF 0%, #F4F1EA 100%);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: 0 1px 0 rgba(255,255,255,0.9) inset, 0 2px 0 var(--border-color), 0 2px 5px rgba(0,0,0,0.07);
+            cursor: pointer;
+            transition: all var(--dur-fast) var(--ease-std);
+            flex-shrink: 0;
+        }
+        .btn-stamp:hover { background: linear-gradient(180deg, #FFFFFF 0%, #EBE7DF 100%); color: var(--text-color); transform: translateY(-1px); }
+        .btn-stamp:active { transform: translateY(2px); box-shadow: 0 0 0 var(--border-color), 0 1px 3px rgba(0,0,0,0.07); }
+        [data-theme="dark"] .btn-stamp {
+            background: linear-gradient(180deg, #2E2E2E 0%, #242424 100%);
+            border-color: #3E3E3E;
+            box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 2px 0 #181818, 0 2px 5px rgba(0,0,0,0.25);
+        }
+        .btn-sm { padding: 6px 12px !important; font-size: var(--fs-xs) !important; }
+        .btn-lg { padding: 14px 24px !important; font-size: var(--fs-md) !important; }
+
+        /* ── Label Tape ── */
+        .label-tape {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            font-size: var(--fs-xs);
+            font-family: var(--font-mono);
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            background: linear-gradient(180deg, #F5EFDF 0%, #EDE6D0 100%);
+            color: #5C4A2A;
+            border-radius: var(--radius-xs);
+            border: 1px solid rgba(139,110,60,0.3);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.10);
+        }
+        .label-tape--coral {
+            background: linear-gradient(180deg, #F5C9B8 0%, #EDB59A 100%);
+            color: #6B2E15;
+            border-color: rgba(180,80,40,0.3);
+        }
+        .label-tape--red {
+            background: linear-gradient(180deg, #F5B8B8 0%, #EDA0A0 100%);
+            color: #6B1515;
+            border-color: rgba(180,40,40,0.3);
+        }
+        .label-dymo {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            font-size: var(--fs-xs);
+            font-family: var(--font-mono);
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            background: linear-gradient(180deg, #1A1A1A 0%, #2C2C2C 100%);
+            color: #F0ECD8;
+            border-radius: 3px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        /* ── Layout Shell ── */
+        .fa-wordmark {
+            font-family: 'Caveat', cursive, var(--font-sans);
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            color: var(--text-color);
+            line-height: 1;
+            display: inline-block;
+        }
+        .fa-header {
+            padding: 10px 32px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--paper-color);
+        }
+        .fa-main {
+            display: flex;
+            padding: 24px 32px;
+            gap: 24px;
+            align-items: flex-start;
+        }
+        .fa-sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .fa-sidebar-group {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            background: var(--paper-color);
+            box-shadow: var(--shadow-sm);
+        }
+        .fa-content { flex: 1; min-width: 0; }
+        .fa-panel {
+            background: var(--paper-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            padding: 24px;
+        }
+        .fa-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        .fa-stat {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--dur-std) var(--ease-std);
+            background: var(--paper-color);
+        }
+        .fa-stat:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--accent-color);
+        }
+        .fa-stat-value {
+            font-size: 28px;
+            font-weight: 300;
+            color: var(--text-secondary);
+            letter-spacing: -0.02em;
+            line-height: 1;
+        }
+        .fa-stat-label { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+        .fa-photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+        }
+        .fa-roll-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+        }
+        .fa-roll-card { transition: transform var(--dur-std) var(--ease-std), box-shadow var(--dur-std) var(--ease-std); }
+        .fa-roll-card:hover { transform: translateY(-2px); }
+        .fa-roll-meta { display: flex; justify-content: space-between; align-items: center; padding: 10px 4px 0; }
+        .fa-roll-name { font-size: 15px; font-weight: 500; }
+        .fa-roll-sub { font-size: 12px; color: var(--text-secondary); }
+        .fa-photo-header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+        .fa-photo-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .fa-batch-toolbar {
+            position: sticky;
+            bottom: 20px;
+            background: rgba(26, 26, 26, 0.92);
+            color: white;
+            padding: 12px 20px;
+            border-radius: var(--radius-xl);
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.08);
+            z-index: 100;
+            margin: 0 auto;
+            max-width: 500px;
+        }
+        .fa-batch-toolbar.active { display: flex; }
+        .fa-check {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 24px;
+            height: 24px;
+            border-radius: var(--radius-sm);
+            border: 2px solid rgba(255,255,255,0.85);
+            background: rgba(255,255,255,0.92);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: white;
+            transition: all var(--dur-fast) var(--ease-std);
+            z-index: 5;
+            cursor: pointer;
+        }
+        .fa-check.on { background: var(--accent-color); border-color: var(--accent-color); }
+        .fa-tabs {
+            display: flex;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            background: var(--bg-color);
+        }
+        .fa-tab {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            font-size: var(--fs-sm);
+            color: var(--text-secondary);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            transition: all var(--dur-fast) var(--ease-std);
+            border-right: 1px solid var(--border-color);
+        }
+        .fa-tab:last-child { border-right: none; }
+        .fa-tab.active, .fa-tab:hover { background: var(--hover-bg); color: var(--text-color); font-weight: 500; }
+        .fa-form { display: flex; flex-direction: column; gap: 14px; }
+        .fa-form-row {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            align-items: center;
+            gap: 16px;
+        }
+        .fa-form-row > label { font-size: var(--fs-sm); color: var(--text-secondary); }
+        .fa-form-actions {
+            padding-top: 18px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .fa-empty { text-align: center; padding: 80px 20px; color: var(--text-secondary); }
+
+        /* ── Typography extras ── */
+        .display-film { font-weight: 700; font-size: var(--fs-3xl); letter-spacing: 0.05em; }
+        .chrome { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; }
+        .chrome-spaced { text-transform: uppercase; letter-spacing: 0.3em; font-size: var(--fs-xs); }
+        .mono { font-family: var(--font-mono); font-size: var(--fs-xs); letter-spacing: 0.05em; }
+        :where(button,input,select,textarea,a):focus-visible {
+            outline: 2px solid var(--accent-color);
+            outline-offset: 2px;
+        }
+
+        /* ── Mobile overrides for fa-* layout ── */
+        @media (max-width: 767px) {
+            .fa-header { padding: 10px 16px; }
+            .fa-main { flex-direction: column; padding: 12px 16px; }
+            .fa-stat-grid { grid-template-columns: repeat(2, 1fr) !important; }
+            .fa-form-row { grid-template-columns: 1fr !important; }
+            .fa-sidebar { width: 100%; }
+            .fa-panel { padding: 16px; }
+        }
     </style>
     <script src="backend/api.js"></script>
 </head>
 <body class="min-h-screen">
-    <header class="border-b border-custom px-4 md:px-8 py-2.5 md:py-4">
+    <header class="fa-header">
         <div class="flex justify-between items-center">
-            <span class="serif text-xl tracking-wide" style="color: var(--text-color); font-weight: 500;">film manager</span>
+            <span class="fa-wordmark">film manager</span>
             <div class="flex items-center gap-2">
-                <button id="themeToggle" onclick="toggleTheme()" title="切换主题">
-                    <svg id="theme-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                <button id="themeToggle" class="btn-stamp" onclick="toggleTheme()" title="切换主题">
+                    <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
                         <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
                     </svg>
-                    <svg id="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                     </svg>
                 </button>
-                <button onclick="showOnboarding()" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <button onclick="showOnboarding()" class="btn-archive-ghost flex items-center gap-2">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
                         <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                         <line x1="12" y1="17" x2="12.01" y2="17"></line>
                     </svg>
-                    <span class="hidden sm:inline">入门</span>
+                    <span class="hidden sm:inline header-btn-text">入门</span>
                 </button>
-                <button id="auth-button" onclick="AuthUI.showLoginModal()" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <button id="auth-button" onclick="AuthUI.showLoginModal()" class="btn-archive-ghost flex items-center gap-2">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                         <circle cx="12" cy="7" r="4"></circle>
                     </svg>
-                    <span class="hidden sm:inline">登录</span>
+                    <span class="hidden sm:inline header-btn-text">登录</span>
                 </button>
                 <div id="user-info" class="hidden items-center gap-2"></div>
-                <button id="sync-button" onclick="AuthUI.syncFromServer()" class="hidden flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors" title="从服务器同步">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <button id="sync-button" onclick="AuthUI.syncFromServer()" class="hidden btn-archive-ghost flex items-center gap-2" title="从服务器同步">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="23 4 23 10 17 10"></polyline>
                         <polyline points="1 20 1 14 7 14"></polyline>
                         <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
                     </svg>
-                    <span class="hidden sm:inline">同步</span>
+                    <span class="hidden sm:inline header-btn-text">同步</span>
                 </button>
             </div>
         </div>
@@ -640,9 +988,9 @@
         </div>
     </div>
 
-    <main class="flex px-4 md:px-8 py-4 md:py-6 gap-4 md:gap-6">
-        <aside class="desktop-sidebar w-56 flex-shrink-0 space-y-4">
-            <div class="border border-custom rounded-lg overflow-hidden paper-bg">
+    <main class="fa-main">
+        <aside class="desktop-sidebar fa-sidebar">
+            <div class="fa-sidebar-group">
                 <nav class="flex flex-col text-sm">
                     <a href="#" class="sidebar-item active px-4 py-3 border-b border-custom/50 hover:bg-[var(--hover-bg)] transition-colors" id="menu-overview" onclick="showSection('overview')">归档概览</a>
                     <a href="#" class="sidebar-item px-4 py-3 border-b border-custom/50 hover:bg-[var(--hover-bg)] transition-colors" id="menu-scans" onclick="showSection('scans')">胶片扫描档案 <span class="status-dot"></span></a>
@@ -650,7 +998,7 @@
                     <a href="#" class="sidebar-item px-4 py-3 hover:bg-[var(--hover-bg)] transition-colors" id="menu-darkroom" onclick="showSection('darkroom')">暗房</a>
                 </nav>
             </div>
-            <div class="border border-custom rounded-lg overflow-hidden paper-bg">
+            <div class="fa-sidebar-group">
                 <nav class="flex flex-col text-sm">
                     <a href="#" class="sidebar-item px-4 py-3 border-b border-custom/50 hover:bg-[var(--hover-bg)] transition-colors" id="menu-display" onclick="showSection('display')">精选展示</a>
                     <a href="#" class="sidebar-item px-4 py-3 border-b border-custom/50 hover:bg-[var(--hover-bg)] transition-colors" onclick="showModal('filmDictModal')">胶片字典</a>
@@ -659,75 +1007,75 @@
             </div>
         </aside>
 
-        <section class="flex-1" id="main-content">
+        <section class="fa-content" id="main-content">
             <!-- Overview Section -->
             <div class="section-content active" id="section-overview">
-                <div class="border border-custom rounded-xl paper-bg p-4 md:p-6 section-panel">
-                    <h2 class="handwritten text-2xl text-gray-700 mb-6">归档概览</h2>
-                    <div class="stat-grid grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
-                        <div class="border border-custom rounded-lg p-4 text-center stat-card-clickable" onclick="showRollsModal()">
-                            <div class="text-3xl font-light text-gray-600" id="stat-rolls">0</div>
-                            <div class="text-sm text-gray-500 mt-1">胶卷总数</div>
+                <div class="fa-panel section-panel">
+                    <h2 class="handwritten text-2xl mb-6" style="color:var(--text-color)">归档概览</h2>
+                    <div class="fa-stat-grid stat-grid mb-8">
+                        <div class="fa-stat" onclick="showRollsModal()">
+                            <div class="fa-stat-value" id="stat-rolls">0</div>
+                            <div class="fa-stat-label">胶卷总数</div>
                         </div>
-                        <div class="border border-custom rounded-lg p-4 text-center stat-card-clickable" onclick="showSection('scans')">
-                            <div class="text-3xl font-light text-gray-600" id="stat-scans">0</div>
-                            <div class="text-sm text-gray-500 mt-1">扫描张数</div>
+                        <div class="fa-stat" onclick="showSection('scans')">
+                            <div class="fa-stat-value" id="stat-scans">0</div>
+                            <div class="fa-stat-label">扫描张数</div>
                         </div>
-                        <div class="border border-custom rounded-lg p-4 text-center stat-card-clickable" onclick="showModal('filmDictModal')">
-                            <div class="text-3xl font-light text-gray-600" id="stat-films">0</div>
-                            <div class="text-sm text-gray-500 mt-1">胶片种类</div>
+                        <div class="fa-stat" onclick="showModal('filmDictModal')">
+                            <div class="fa-stat-value" id="stat-films">0</div>
+                            <div class="fa-stat-label">胶片种类</div>
                         </div>
-                        <div class="border border-custom rounded-lg p-4 text-center stat-card-clickable" onclick="showModal('artistDictModal')">
-                            <div class="text-3xl font-light text-gray-600" id="stat-artists">0</div>
-                            <div class="text-sm text-gray-500 mt-1">摄影师</div>
+                        <div class="fa-stat" onclick="showModal('artistDictModal')">
+                            <div class="fa-stat-value" id="stat-artists">0</div>
+                            <div class="fa-stat-label">摄影师</div>
                         </div>
                     </div>
 
-                    <h3 class="handwritten text-xl text-gray-700 mb-4">最近添加</h3>
+                    <h3 class="handwritten text-xl mb-4" style="color:var(--text-color)">最近添加</h3>
                     <div class="grid-photos" id="recent-photos"></div>
                 </div>
             </div>
 
             <!-- Scans Section -->
             <div class="section-content" id="section-scans">
-                <div class="border border-custom rounded-xl paper-bg p-4 md:p-6 section-panel">
-                    <h2 class="handwritten text-2xl text-gray-700 mb-6">胶片扫描档案</h2>
+                <div class="fa-panel section-panel">
+                    <h2 class="handwritten text-2xl mb-6" style="color:var(--text-color)">胶片扫描档案</h2>
                     <div id="scans-index-view"></div>
                 </div>
             </div>
 
             <!-- Display Section -->
             <div class="section-content" id="section-display">
-                <div class="border border-custom rounded-xl paper-bg p-4 md:p-6 section-panel">
-                    <h2 class="handwritten text-2xl text-gray-700 mb-6">精选展示</h2>
+                <div class="fa-panel section-panel">
+                    <h2 class="handwritten text-2xl mb-6" style="color:var(--text-color)">精选展示</h2>
                     <div id="featured-display"></div>
                 </div>
             </div>
 
             <!-- Works Section -->
             <div class="section-content active" id="section-works">
-                <div class="flex border border-custom rounded-lg overflow-hidden mb-5 text-sm">
-                    <button class="tab-btn flex-1 py-2.5 text-center" onclick="switchTab('log')" id="tab-log">登记胶卷</button>
-                    <button class="tab-btn flex-1 py-2.5 text-center border-x border-custom" onclick="switchTab('populate')" id="tab-populate">填充胶卷</button>
-                    <button class="tab-btn active flex-1 py-2.5 text-center" onclick="switchTab('edit')" id="tab-edit">照片概览</button>
+                <div class="fa-tabs mb-5">
+                    <button class="fa-tab tab-btn" onclick="switchTab('log')" id="tab-log">登记胶卷</button>
+                    <button class="fa-tab tab-btn" onclick="switchTab('populate')" id="tab-populate">填充胶卷</button>
+                    <button class="fa-tab tab-btn active" onclick="switchTab('edit')" id="tab-edit">照片概览</button>
                 </div>
 
                 <!-- Log a Roll -->
-                <div class="section-content border border-custom rounded-xl paper-bg p-4 md:p-6 section-panel" id="content-log">
-                    <h2 class="handwritten text-2xl text-gray-700 mb-6">登记新胶卷</h2>
-                    <form id="form-log-roll" class="space-y-4">
-                        <div class="form-row flex items-center gap-4 sm:gap-4">
-                            <label class="form-label text-sm sm:w-28 text-gray-600"><span class="text-red-500">*</span> 胶卷名称:</label>
+                <div class="section-content fa-panel section-panel" id="content-log">
+                    <h2 class="handwritten text-2xl mb-6" style="color:var(--text-color)">登记新胶卷</h2>
+                    <form id="form-log-roll" class="fa-form">
+                        <div class="fa-form-row form-row">
+                            <label class="form-label"><span class="text-red-500">*</span> 胶卷名称:</label>
                             <input type="text" id="roll-name" required class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg" placeholder="例如：2024年春节胶卷">
                         </div>
-                        <div class="form-row flex items-center gap-4 sm:gap-4">
-                            <label class="form-label text-sm sm:w-28 text-gray-600">胶片型号:</label>
+                        <div class="fa-form-row form-row">
+                            <label class="form-label">胶片型号:</label>
                             <select id="roll-film" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg">
                                 <option value="">请选择胶片型号（可选）</option>
                             </select>
                         </div>
-                        <div class="form-row flex items-center gap-4 sm:gap-4">
-                            <label class="form-label text-sm sm:w-28 text-gray-600">画幅:</label>
+                        <div class="fa-form-row form-row">
+                            <label class="form-label">画幅:</label>
                             <select id="roll-format" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg">
                                 <option value="135">135 / 35mm</option>
                                 <option value="120">120 / 中画幅</option>
@@ -740,62 +1088,62 @@
                                 <option value="phone">手机</option>
                             </select>
                         </div>
-                        <div class="form-row flex items-center gap-4 sm:gap-4">
-                            <label class="form-label text-sm sm:w-28 text-gray-600">拍摄设备:</label>
+                        <div class="fa-form-row form-row">
+                            <label class="form-label">拍摄设备:</label>
                             <input type="text" id="roll-camera" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg" placeholder="例如：Leica M6 / iPhone 15 Pro / Sony A7M4（可选）">
                         </div>
-                        <div class="form-row flex items-center gap-4 sm:gap-4">
-                            <label class="form-label text-sm sm:w-28 text-gray-600">摄影师:</label>
+                        <div class="fa-form-row form-row">
+                            <label class="form-label">摄影师:</label>
                             <select id="roll-artist" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg"></select>
                         </div>
-                        <div class="form-row flex items-center gap-4 sm:gap-4">
-                            <label class="form-label text-sm sm:w-28 text-gray-600">拍摄日期:</label>
+                        <div class="fa-form-row form-row">
+                            <label class="form-label">拍摄日期:</label>
                             <input type="date" id="roll-date" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg">
                         </div>
-                        <div class="form-row flex gap-4">
-                            <label class="form-label text-sm sm:w-28 pt-0 sm:pt-2 text-gray-600">备注:</label>
+                        <div class="fa-form-row form-row">
+                            <label class="form-label">备注:</label>
                             <textarea id="roll-notes" rows="3" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg resize-none" placeholder="其他备注信息（可选）"></textarea>
                         </div>
-                        <div class="pt-4 border-t border-custom">
-                            <button type="submit" class="btn-primary w-full py-2.5 rounded-lg text-sm">保存胶卷</button>
+                        <div class="fa-form-actions">
+                            <button type="submit" class="btn-archive btn-lg w-full">保存胶卷</button>
                         </div>
                     </form>
                 </div>
 
                 <!-- Populate a Roll -->
-                <div class="section-content border border-custom rounded-xl paper-bg p-4 md:p-6 section-panel" id="content-populate">
-                    <h2 class="handwritten text-2xl text-gray-700 mb-6">批量上传扫描</h2>
-                    <div class="space-y-4" id="populate-form">
-                        <div class="form-row flex items-center gap-4 sm:gap-4">
-                            <label class="form-label text-sm sm:w-28 text-gray-600">选择胶卷:</label>
+                <div class="section-content fa-panel section-panel" id="content-populate">
+                    <h2 class="handwritten text-2xl mb-6" style="color:var(--text-color)">批量上传扫描</h2>
+                    <div class="fa-form" id="populate-form">
+                        <div class="fa-form-row form-row">
+                            <label class="form-label" style="color:var(--text-secondary)">选择胶卷:</label>
                             <select id="populate-roll" class="form-input flex-1 px-3 py-2 rounded text-sm paper-bg">
                                 <option value="">请选择胶卷</option>
                             </select>
                         </div>
                         <div class="border-2 border-dashed border-custom rounded-lg p-8 text-center" id="drop-zone">
-                            <p class="text-gray-500 mb-2">拖拽图片到这里或点击上传</p>
+                            <p class="mb-3" style="color:var(--text-secondary)">拖拽图片到这里或点击上传</p>
                             <input type="file" id="populate-files" multiple accept="image/*" class="hidden">
-                            <button onclick="document.getElementById('populate-files').click()" class="px-4 py-2 border border-custom rounded text-sm paper-bg hover-custom">选择文件</button>
+                            <button onclick="document.getElementById('populate-files').click()" class="btn-archive-paper">选择文件</button>
                         </div>
                         <div id="populate-preview" class="grid-photos hidden"></div>
-                        <div class="pt-4 border-t border-custom">
-                            <button onclick="savePopulateScans()" class="btn-primary w-full py-2.5 rounded-lg text-sm">保存所有扫描</button>
+                        <div class="fa-form-actions">
+                            <button onclick="savePopulateScans()" class="btn-archive btn-lg w-full">保存所有扫描</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Photo Overview -->
                 <div class="section-content active" id="content-edit">
-                    <div class="border border-custom rounded-xl paper-bg p-4 md:p-6 section-panel relative">
-                        <div class="photo-header flex flex-wrap items-center justify-between mb-6 gap-3">
-                            <h2 class="handwritten text-2xl text-gray-700">照片概览</h2>
-                            <div class="photo-header-controls flex flex-wrap items-center gap-3">
+                    <div class="fa-panel section-panel relative">
+                        <div class="fa-photo-header photo-header">
+                            <h2 class="handwritten text-2xl" style="color:var(--text-color)">照片概览</h2>
+                            <div class="fa-photo-controls photo-header-controls">
                                 <label class="flex items-center gap-2 text-sm cursor-pointer">
                                     <input type="checkbox" id="auto-fullscreen" class="w-4 h-4 accent-[#D97757]">
                                     <span>自动全屏</span>
                                 </label>
-                                <button onclick="toggleBatchMode()" id="batch-mode-btn" class="px-3 py-2 text-sm border border-custom rounded hover-custom flex items-center gap-2">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <button onclick="toggleBatchMode()" id="batch-mode-btn" class="btn-archive-paper btn-sm flex items-center gap-2">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/>
                                     </svg>
                                     批量删除
@@ -808,7 +1156,7 @@
 
                         <div id="auto-fullscreen-hint" class="auto-fullscreen-hint">已自动进入全屏浏览</div>
 
-                        <div id="batch-toolbar" class="batch-toolbar">
+                        <div id="batch-toolbar" class="fa-batch-toolbar batch-toolbar">
                             <div class="flex items-center gap-3">
                                 <input type="checkbox" id="batch-select-all" class="w-5 h-5 rounded accent-[#D97757]" onchange="toggleSelectAll()">
                                 <span class="text-sm font-medium">全选</span>
@@ -856,7 +1204,7 @@
 
             <!-- Darkroom Section -->
             <div class="section-content" id="section-darkroom">
-                <div class="border border-custom rounded-xl paper-bg p-8 md:p-12 section-panel text-center">
+                <div class="fa-panel section-panel fa-empty">
                     <div class="mb-6">
                         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto text-gray-400">
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -875,7 +1223,7 @@
     <!-- Fullscreen Viewer - Enhanced -->
     <div class="fullscreen-viewer" id="fullscreenViewer">
         <div class="fullscreen-toolbar">
-            <div class="form-row flex items-center gap-4 sm:gap-4">
+            <div class="fa-form-row form-row">
                 <span id="fullscreen-counter" class="text-sm font-medium">1 / 10</span>
                 <span id="fullscreen-film-info" class="text-sm text-gray-400"></span>
             </div>
@@ -921,7 +1269,7 @@
             <form id="form-add-film" class="flex gap-2 mb-4">
                 <input type="text" id="new-film-name" placeholder="胶片名称" class="form-input flex-1 px-3 py-2 rounded text-sm">
                 <input type="text" id="new-film-iso" placeholder="ISO" class="form-input w-20 px-3 py-2 rounded text-sm">
-                <button type="submit" class="px-4 py-2 border border-custom rounded text-sm paper-bg hover-custom">添加</button>
+                <button type="submit" class="btn-archive-paper btn-sm">添加</button>
             </form>
             <div id="film-list" class="space-y-2"></div>
         </div>
@@ -936,7 +1284,7 @@
             </div>
             <form id="form-add-artist" class="flex gap-2 mb-4">
                 <input type="text" id="new-artist-name" placeholder="摄影师姓名" class="form-input flex-1 px-3 py-2 rounded text-sm">
-                <button type="submit" class="px-4 py-2 border border-custom rounded text-sm paper-bg hover-custom">添加</button>
+                <button type="submit" class="btn-archive-paper btn-sm">添加</button>
             </form>
             <div id="artist-list" class="space-y-2"></div>
         </div>
@@ -1064,9 +1412,9 @@
                             <span class="w-2 h-2 rounded-full bg-gray-300 onboarding-dot" data-step="3"></span>
                         </div>
                         <div class="flex gap-3">
-                            <button id="onboarding-prev" onclick="prevOnboardingStep()" class="px-4 py-2 text-gray-500 hover:text-gray-700 hidden">上一步</button>
-                            <button id="onboarding-next" onclick="nextOnboardingStep()" class="btn-primary px-6 py-2 rounded-lg transition-colors">下一步</button>
-                            <button id="onboarding-finish" onclick="closeOnboarding()" class="btn-primary px-6 py-2 rounded-lg transition-colors hidden">开始使用</button>
+                            <button id="onboarding-prev" onclick="prevOnboardingStep()" class="btn-archive-ghost hidden">上一步</button>
+                            <button id="onboarding-next" onclick="nextOnboardingStep()" class="btn-archive">下一步</button>
+                            <button id="onboarding-finish" onclick="closeOnboarding()" class="btn-archive hidden">开始使用</button>
                         </div>
                     </div>
                 </div>
@@ -1490,7 +1838,7 @@
                 const thumb = document.createElement('div');
                 thumb.className = 'photo-thumb';
                 thumb.innerHTML = `
-                    ${batchMode ? `<div class="batch-select-checkbox ${isSelected ? 'selected' : ''}" data-id="${scan.id}"></div>` : ''}
+                    ${batchMode ? `<div class="fa-check${isSelected ? ' on' : ''}" data-id="${scan.id}">${isSelected ? '✓' : ''}</div>` : ''}
                     <img data-src="${scan.imageData}" alt="" loading="lazy" data-loaded="false">
                     <span class="frame-number">#${String(scan.index || index + 1).padStart(2, '0')}</span>
                     <div class="photo-actions" style="${batchMode ? 'display: none !important;' : ''}">
@@ -1528,15 +1876,17 @@
             // Event delegation for action buttons
             grid.addEventListener('click', (e) => {
                 // Handle batch selection checkbox
-                const checkbox = e.target.closest('.batch-select-checkbox');
+                const checkbox = e.target.closest('.fa-check');
                 if (checkbox) {
                     const scanId = parseInt(checkbox.dataset.id);
                     if (selectedScans.has(scanId)) {
                         selectedScans.delete(scanId);
-                        checkbox.classList.remove('selected');
+                        checkbox.classList.remove('on');
+                        checkbox.textContent = '';
                     } else {
                         selectedScans.add(scanId);
-                        checkbox.classList.add('selected');
+                        checkbox.classList.add('on');
+                        checkbox.textContent = '✓';
                     }
                     updateBatchCount();
                     return;
@@ -1883,9 +2233,9 @@
                                 <div class="relative border border-custom rounded overflow-hidden cursor-pointer scan-item" style="background-color: var(--paper-color)" data-id="${scan.id}">
                                     <span class="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded z-10">#${String(scan.index).padStart(2, '0')}</span>
                                     <img src="${scan.imageData}" alt="" class="w-full aspect-[3/2] object-cover" loading="lazy" onclick="openFullscreenById(${scan.id})">
-                                    <div class="flex justify-between items-center p-2 text-xs" style="background-color: var(--hover-bg)">
-                                        <span class="text-gray-600 font-mono">${String(scan.id).slice(-3)}</span>
-                                        <span class="text-gray-400 truncate max-w-[80px]">${getFilmName(roll?.filmId).split(' ').pop()}</span>
+                                    <div class="flex justify-between items-center p-2 text-xs gap-1" style="background-color: var(--hover-bg)">
+                                        <span class="label-tape" style="font-size:10px;padding:1px 6px">№${String(scan.id).slice(-3)}</span>
+                                        <span class="truncate max-w-[80px]" style="color:var(--text-tertiary)">${getFilmName(roll?.filmId).split(' ').pop()}</span>
                                     </div>
                                     <button class="featured-heart featured-heart-small ${featured ? 'active' : ''}" style="top: 4px; right: 4px; width: 24px; height: 24px;" onclick="const btn=this; const was=this.classList.contains('active'); event.stopPropagation(); toggleFeatured(${scan.id}, null); this.classList.toggle('active', !was); this.querySelector('svg').setAttribute('fill', was?'none':'currentColor'); showToast(was?'已取消精选':'已添加精选'); setTimeout(()=>renderScansList(), 300);" title="${featured ? '取消精选' : '添加精选'}">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="${featured ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
@@ -2185,20 +2535,23 @@
                 return `
                     <div class="flex items-center justify-between p-4 border border-custom rounded-lg hover:bg-[var(--hover-bg)] transition-colors">
                         <div class="flex-1">
-                            <div class="font-medium text-gray-800">${roll.name || '未命名胶卷'}</div>
-                            <div class="text-sm text-gray-500 mt-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="label-tape">№${roll.id}</span>
+                                <span class="font-medium" style="color:var(--text-color)">${roll.name || '未命名胶卷'}</span>
+                            </div>
+                            <div class="text-sm mt-1" style="color:var(--text-secondary)">
                                 ${film ? film.name : '未知胶片'}
                                 ${roll.format ? '· ' + roll.format.toUpperCase() : ''}
                                 ${roll.camera ? '· ' + roll.camera : ''}
                             </div>
-                            <div class="text-xs text-gray-400 mt-1">
+                            <div class="text-xs mt-1" style="color:var(--text-tertiary)">
                                 ${dateDisplay} · ${scanCount} 张扫描
                                 ${artist ? '· 摄影师: ' + artist.name : ''}
                             </div>
                         </div>
                         <div class="flex gap-2 ml-4">
-                            <button onclick="editRoll(${roll.id})" class="px-3 py-1.5 text-sm border border-custom rounded hover-custom">编辑</button>
-                            <button onclick="deleteRoll(${roll.id})" class="px-3 py-1.5 text-sm border border-custom rounded text-red-500 hover:bg-red-50">删除</button>
+                            <button onclick="editRoll(${roll.id})" class="btn-archive-paper btn-sm">编辑</button>
+                            <button onclick="deleteRoll(${roll.id})" class="btn-archive-paper btn-sm" style="color:var(--danger)">删除</button>
                         </div>
                     </div>
                 `;
@@ -2297,7 +2650,9 @@
 
             if (batchMode) {
                 grid.classList.add('batch-mode');
-                btn.classList.add('active', 'bg-[#D97757]', 'text-white');
+                btn.style.background = 'var(--accent-color)';
+                btn.style.color = 'white';
+                btn.style.borderColor = 'var(--accent-hover)';
                 toolbar.classList.add('active');
                 selectedScans.clear();
                 document.getElementById('batch-select-all').checked = false;
@@ -2318,7 +2673,9 @@
             const toolbar = document.getElementById('batch-toolbar');
 
             grid.classList.remove('batch-mode');
-            btn.classList.remove('active', 'bg-[#D97757]', 'text-white');
+            btn.style.background = '';
+            btn.style.color = '';
+            btn.style.borderColor = '';
             toolbar.classList.remove('active');
             document.getElementById('batch-select-all').checked = false;
 
@@ -2338,9 +2695,11 @@
             }
 
             // Update all checkbox visuals
-            document.querySelectorAll('.batch-select-checkbox').forEach(cb => {
+            document.querySelectorAll('.fa-check').forEach(cb => {
                 const scanId = parseInt(cb.dataset.id);
-                cb.classList.toggle('selected', selectedScans.has(scanId));
+                const on = selectedScans.has(scanId);
+                cb.classList.toggle('on', on);
+                cb.textContent = on ? '✓' : '';
             });
 
             updateBatchCount();
