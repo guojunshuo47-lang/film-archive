@@ -301,7 +301,7 @@ const AuthUI = {
                 userInfo.classList.remove('hidden');
                 userInfo.innerHTML = `
                     <span class="text-sm text-gray-600">${user.username}</span>
-                    <button onclick="AuthUI.logout()" class="text-sm text-red-600 hover:text-red-800">退出</button>
+                    <button onclick="AuthUI.logout()" class="btn-archive-ghost btn-sm" style="color:var(--danger)">退出</button>
                 `;
             }
             if (syncBtn) syncBtn.classList.remove('hidden');
