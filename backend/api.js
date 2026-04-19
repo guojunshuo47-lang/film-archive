@@ -6,14 +6,21 @@
 // Supabase Edge Function 配置
 const SUPABASE_ANON_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzc2NTY2Mjg2LCJleHAiOjEzMjg3MjA2Mjg2fQ.w9zHwgYJHx0lFBVYgcwNRhiGzSTe_r9A65U_x6WMyEM';
 
+const BACKEND_URL = 'https://3015-01KPJ57BHH2M05B2MPX41XS182.sandbox.meoo.host/sb-api/functions/v1/film-archive';
+
 // 检测当前页面 URL，自动推断后端地址
 function detectApiBaseUrl() {
     // 1. 优先使用 localStorage 中存储的配置
     const savedUrl = localStorage.getItem('api_base_url');
     if (savedUrl) return savedUrl;
 
-    // 2. 同域 Supabase Edge Function（前后端同源部署）
-    return `${window.location.origin}/sb-api/functions/v1/film-archive-backend`;
+    // 2. 如果前后端同域（从 meoo.host 访问），用相对路径
+    if (window.location.hostname.includes('meoo.host') || window.location.hostname.includes('meoo.space')) {
+        return `${window.location.origin}/sb-api/functions/v1/film-archive`;
+    }
+
+    // 3. 其他域名（如 GitHub Pages）使用固定后端地址
+    return BACKEND_URL;
 }
 
 const API_BASE_URL = detectApiBaseUrl();
