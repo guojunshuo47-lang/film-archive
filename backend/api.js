@@ -102,11 +102,16 @@ const API = {
                 mode: 'cors'
             });
 
-            // Handle token expiration — clear and redirect to login
             if (response.status === 401) {
-                Auth.clearTokens();
-                if (typeof showLoginPage === 'function') showLoginPage();
-                throw new Error('登录已过期，请重新登录');
+                const errBody = await response.json().catch(() => ({}));
+                if (Auth.getToken()) {
+                    // Authenticated request expired — clear session and redirect
+                    Auth.clearTokens();
+                    if (typeof showLoginPage === 'function') showLoginPage();
+                    throw new Error('登录已过期，请重新登录');
+                }
+                // Unauthenticated request (e.g. login with wrong password)
+                throw new Error(errBody.error || '邮箱或密码错误');
             }
 
             if (!response.ok) {
