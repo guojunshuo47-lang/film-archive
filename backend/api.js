@@ -4,7 +4,6 @@
  */
 
 // Supabase Edge Function 配置
-const SUPABASE_URL = 'https://<your-project>.meoo.space/sb-api/functions/v1/film-archive-backend';
 const SUPABASE_ANON_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzc2NTY2Mjg2LCJleHAiOjEzMjg3MjA2Mjg2fQ.w9zHwgYJHx0lFBVYgcwNRhiGzSTe_r9A65U_x6WMyEM';
 
 // 检测当前页面 URL，自动推断后端地址
@@ -13,8 +12,8 @@ function detectApiBaseUrl() {
     const savedUrl = localStorage.getItem('api_base_url');
     if (savedUrl) return savedUrl;
 
-    // 2. 默认使用 Supabase Edge Function
-    return SUPABASE_URL;
+    // 2. 同域 Supabase Edge Function（前后端同源部署）
+    return `${window.location.origin}/sb-api/functions/v1/film-archive-backend`;
 }
 
 const API_BASE_URL = detectApiBaseUrl();
