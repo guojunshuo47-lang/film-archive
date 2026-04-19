@@ -6,7 +6,7 @@
 // Supabase Edge Function 配置
 const SUPABASE_ANON_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzc2NTY2Mjg2LCJleHAiOjEzMjg3MjA2Mjg2fQ.w9zHwgYJHx0lFBVYgcwNRhiGzSTe_r9A65U_x6WMyEM';
 
-const BACKEND_URL = 'https://3015-01KPJ57BHH2M05B2MPX41XS182.sandbox.meoo.host/sb-api/functions/v1/film-archive';
+const BACKEND_URL = 'http://localhost:8000/api';
 
 // 检测当前页面 URL，自动推断后端地址
 function detectApiBaseUrl() {
