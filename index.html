@@ -910,10 +910,148 @@
             .fa-sidebar { width: 100%; }
             .fa-panel { padding: 16px; }
         }
+
+        /* ── Login Page ── */
+        #login-page {
+            display: flex;
+            min-height: 100vh;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: var(--bg-color);
+        }
+        #login-page.hidden { display: none; }
+        #app-shell.hidden { display: none; }
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--paper-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-2xl);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+        .login-header {
+            padding: 40px 40px 28px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .login-body { padding: 32px 40px 40px; }
+        .login-field { display: flex; flex-direction: column; gap: 6px; }
+        .login-field label { font-size: var(--fs-sm); color: var(--text-secondary); font-weight: 500; }
+        .login-field input {
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--paper-color);
+            color: var(--text-color);
+            font-size: var(--fs-base);
+            font-family: var(--font-sans);
+            transition: border-color var(--dur-fast) var(--ease-std), box-shadow var(--dur-fast) var(--ease-std);
+        }
+        .login-field input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+        }
+        .login-switch { text-align: center; font-size: var(--fs-sm); color: var(--text-secondary); margin-top: 20px; }
+        .login-switch button { color: var(--accent-color); font-weight: 500; background: none; border: none; cursor: pointer; }
+        .login-switch button:hover { text-decoration: underline; }
+        .login-error {
+            display: none;
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            background: rgba(199,72,72,0.10);
+            border: 1px solid rgba(199,72,72,0.25);
+            color: var(--danger);
+            font-size: var(--fs-sm);
+        }
+        .login-error.show { display: block; }
+        .login-theme-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+        }
+        @media (max-width: 480px) {
+            .login-header { padding: 32px 24px 20px; }
+            .login-body { padding: 24px 24px 32px; }
+        }
     </style>
     <script src="backend/api.js"></script>
 </head>
 <body class="min-h-screen">
+
+    <!-- ── Login Page ── -->
+    <div id="login-page" class="hidden">
+        <button class="btn-stamp login-theme-btn" onclick="toggleTheme()" title="切换主题" style="position:fixed">
+            <svg id="lp-theme-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg id="lp-theme-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+        </button>
+
+        <div class="login-card">
+            <div class="login-header">
+                <div class="fa-wordmark mb-2">film manager</div>
+                <p style="font-size:var(--fs-sm);color:var(--text-secondary);margin-top:8px">胶片归档室</p>
+            </div>
+
+            <div class="login-body">
+                <!-- Tabs -->
+                <div class="fa-tabs mb-6" id="auth-tabs">
+                    <button class="fa-tab active" id="tab-login-btn" onclick="switchAuthTab('login')">登录</button>
+                    <button class="fa-tab" id="tab-register-btn" onclick="switchAuthTab('register')">注册</button>
+                </div>
+
+                <div id="auth-error" class="login-error mb-4"></div>
+
+                <!-- Login Form -->
+                <div id="lp-login-form">
+                    <div class="flex flex-col gap-4">
+                        <div class="login-field">
+                            <label>用户名</label>
+                            <input type="text" id="lp-username" placeholder="输入用户名" autocomplete="username">
+                        </div>
+                        <div class="login-field">
+                            <label>密码</label>
+                            <input type="password" id="lp-password" placeholder="输入密码" autocomplete="current-password"
+                                onkeydown="if(event.key==='Enter') doLogin()">
+                        </div>
+                    </div>
+                    <button class="btn-archive btn-lg w-full mt-6" onclick="doLogin()" id="lp-login-btn">登录</button>
+                </div>
+
+                <!-- Register Form -->
+                <div id="lp-register-form" class="hidden">
+                    <div class="flex flex-col gap-4">
+                        <div class="login-field">
+                            <label>用户名</label>
+                            <input type="text" id="lp-reg-username" placeholder="至少 3 个字符" autocomplete="username">
+                        </div>
+                        <div class="login-field">
+                            <label>邮箱</label>
+                            <input type="email" id="lp-reg-email" placeholder="your@email.com" autocomplete="email">
+                        </div>
+                        <div class="login-field">
+                            <label>密码</label>
+                            <input type="password" id="lp-reg-password" placeholder="至少 6 个字符" autocomplete="new-password">
+                        </div>
+                        <div class="login-field">
+                            <label>确认密码</label>
+                            <input type="password" id="lp-reg-confirm" placeholder="再次输入密码" autocomplete="new-password"
+                                onkeydown="if(event.key==='Enter') doRegister()">
+                        </div>
+                    </div>
+                    <button class="btn-archive btn-lg w-full mt-6" onclick="doRegister()" id="lp-register-btn">注册</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Main App ── -->
+    <div id="app-shell" class="hidden">
     <header class="fa-header">
         <div class="flex justify-between items-center">
             <span class="fa-wordmark">film manager</span>
@@ -934,7 +1072,7 @@
                     </svg>
                     <span class="hidden sm:inline header-btn-text">入门</span>
                 </button>
-                <button id="auth-button" onclick="AuthUI.showLoginModal()" class="btn-archive-ghost flex items-center gap-2">
+                <button id="auth-button" onclick="showLoginPage()" class="btn-archive-ghost flex items-center gap-2">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                         <circle cx="12" cy="7" r="4"></circle>
@@ -2837,79 +2975,125 @@
             }
         });
     </script>
-<!-- Auth Modal -->
-<div id="auth-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" style="background-color: var(--paper-color);">
-        <!-- Header -->
-        <div class="px-8 py-6 border-b" style="border-color: var(--border-color);">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-semibold" style="color: var(--text-color);">
-                    <span id="auth-title">登录</span>
-                </h2>
-                <button onclick="AuthUI.hideModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
-        </div>
+    </div><!-- /#app-shell -->
 
-        <!-- Login Form -->
-        <div id="login-form" class="p-8">
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-2" style="color: var(--text-color);">用户名</label>
-                    <input type="text" id="login-username" class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-400" style="border-color: var(--border-color); background: white;" placeholder="输入用户名">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2" style="color: var(--text-color);">密码</label>
-                    <input type="password" id="login-password" class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-400" style="border-color: var(--border-color); background: white;" placeholder="输入密码">
-                </div>
-            </div>
+    <script>
+        /* ── Login Page Logic ── */
+        function showLoginPage() {
+            document.getElementById('login-page').classList.remove('hidden');
+            document.getElementById('app-shell').classList.add('hidden');
+            syncLoginThemeIcons();
+        }
 
-            <button onclick="AuthUI.login()" class="w-full mt-6 py-3 rounded-lg font-medium transition-colors" style="background-color: var(--accent-green); color: white;">
-                登录
-            </button>
+        function showAppShell() {
+            document.getElementById('login-page').classList.add('hidden');
+            document.getElementById('app-shell').classList.remove('hidden');
+        }
 
-            <div class="mt-6 text-center text-sm">
-                <span class="text-gray-500">还没有账号？</span>
-                <button onclick="AuthUI.switchToRegister()" class="ml-1 font-medium hover:underline" style="color: var(--accent-green);">立即注册</button>
-            </div>
-        </div>
+        function switchAuthTab(tab) {
+            const isLogin = tab === 'login';
+            document.getElementById('lp-login-form').classList.toggle('hidden', !isLogin);
+            document.getElementById('lp-register-form').classList.toggle('hidden', isLogin);
+            document.getElementById('tab-login-btn').classList.toggle('active', isLogin);
+            document.getElementById('tab-register-btn').classList.toggle('active', !isLogin);
+            setAuthError('');
+        }
 
-        <!-- Register Form -->
-        <div id="register-form" class="p-8 hidden">
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-2" style="color: var(--text-color);">用户名</label>
-                    <input type="text" id="reg-username" class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-400" style="border-color: var(--border-color); background: white;" placeholder="输入用户名（至少3个字符）">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2" style="color: var(--text-color);">邮箱</label>
-                    <input type="email" id="reg-email" class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-400" style="border-color: var(--border-color); background: white;" placeholder="输入邮箱地址">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2" style="color: var(--text-color);">密码</label>
-                    <input type="password" id="reg-password" class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-400" style="border-color: var(--border-color); background: white;" placeholder="输入密码（至少6个字符）">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2" style="color: var(--text-color);">确认密码</label>
-                    <input type="password" id="reg-password-confirm" class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-400" style="border-color: var(--border-color); background: white;" placeholder="再次输入密码">
-                </div>
-            </div>
+        function setAuthError(msg) {
+            const el = document.getElementById('auth-error');
+            el.textContent = msg;
+            el.classList.toggle('show', !!msg);
+        }
 
-            <button onclick="AuthUI.register()" class="w-full mt-6 py-3 rounded-lg font-medium transition-colors" style="background-color: var(--accent-green); color: white;">
-                注册
-            </button>
+        async function doLogin() {
+            const btn = document.getElementById('lp-login-btn');
+            const username = document.getElementById('lp-username').value.trim();
+            const password = document.getElementById('lp-password').value;
+            if (!username || !password) { setAuthError('请输入用户名和密码'); return; }
+            btn.disabled = true;
+            btn.textContent = '登录中…';
+            setAuthError('');
+            try {
+                await API.auth.login(username, password);
+                const user = await API.auth.me();
+                Auth.setUser(user);
+                AuthUI.updateUI();
+                showAppShell();
+                showToast('登录成功');
+                AuthUI.syncToServer();
+            } catch (e) {
+                setAuthError('登录失败：' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '登录';
+            }
+        }
 
-            <div class="mt-6 text-center text-sm">
-                <span class="text-gray-500">已有账号？</span>
-                <button onclick="AuthUI.switchToLogin()" class="ml-1 font-medium hover:underline" style="color: var(--accent-green);">立即登录</button>
-            </div>
-        </div>
-    </div>
-</div>
+        async function doRegister() {
+            const btn = document.getElementById('lp-register-btn');
+            const username = document.getElementById('lp-reg-username').value.trim();
+            const email = document.getElementById('lp-reg-email').value.trim();
+            const password = document.getElementById('lp-reg-password').value;
+            const confirm = document.getElementById('lp-reg-confirm').value;
+            if (!username || !email || !password) { setAuthError('请填写所有字段'); return; }
+            if (password !== confirm) { setAuthError('两次密码不一致'); return; }
+            if (password.length < 6) { setAuthError('密码至少 6 个字符'); return; }
+            btn.disabled = true;
+            btn.textContent = '注册中…';
+            setAuthError('');
+            try {
+                await API.auth.register(username, email, password);
+                await API.auth.login(username, password);
+                const user = await API.auth.me();
+                Auth.setUser(user);
+                AuthUI.updateUI();
+                showAppShell();
+                showToast('注册成功，已自动登录');
+                AuthUI.syncToServer();
+            } catch (e) {
+                setAuthError('注册失败：' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '注册';
+            }
+        }
+
+        /* sync theme icons on login page */
+        function syncLoginThemeIcons() {
+            const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const sun = document.getElementById('lp-theme-sun');
+            const moon = document.getElementById('lp-theme-moon');
+            if (sun) sun.style.display = dark ? 'block' : 'none';
+            if (moon) moon.style.display = dark ? 'none' : 'block';
+        }
+
+        /* Patch toggleTheme to also sync login page icons */
+        const _origToggle = typeof toggleTheme === 'function' ? toggleTheme : null;
+        if (_origToggle) {
+            window.toggleTheme = function() { _origToggle(); syncLoginThemeIcons(); };
+        }
+
+        /* On load: show login page if not authenticated */
+        document.addEventListener('DOMContentLoaded', () => {
+            if (Auth.isAuthenticated()) {
+                showAppShell();
+                AuthUI.updateUI();
+            } else {
+                showLoginPage();
+            }
+        });
+
+        /* Header 登录按钮 → 直接跳到登录页（已弃用 modal，保持兼容） */
+        if (typeof AuthUI !== 'undefined') {
+            AuthUI.showLoginModal = showLoginPage;
+        }
+
+        /* 退出登录后回到登录页 */
+        const _origLogout = AuthUI ? AuthUI.logout.bind(AuthUI) : null;
+        if (_origLogout) {
+            AuthUI.logout = function() { _origLogout(); showLoginPage(); };
+        }
+    </script>
 
 </body>
 </html>
