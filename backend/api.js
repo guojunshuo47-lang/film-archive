@@ -13,7 +13,7 @@ function detectApiBaseUrl() {
     if (savedUrl) return savedUrl;
 
     // 2. 同域 Supabase Edge Function（前后端同源部署）
-    return `${window.location.origin}/sb-api/functions/v1/film-archive-backend`;
+    return `${window.location.origin}/sb-api/functions/v1/film-archive`;
 }
 
 const API_BASE_URL = detectApiBaseUrl();
