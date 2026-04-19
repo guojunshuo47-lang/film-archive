@@ -44,3 +44,8 @@ Thumbs.db
 # Build
 dist/
 build/
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
