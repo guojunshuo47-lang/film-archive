@@ -3,25 +3,18 @@
  * 提供与后端 API 的通信功能
  */
 
+// Supabase Edge Function 配置
+const SUPABASE_URL = 'https://<your-project>.meoo.space/sb-api/functions/v1/film-archive-backend';
+const SUPABASE_ANON_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzc2NTY2Mjg2LCJleHAiOjEzMjg3MjA2Mjg2fQ.w9zHwgYJHx0lFBVYgcwNRhiGzSTe_r9A65U_x6WMyEM';
+
 // 检测当前页面 URL，自动推断后端地址
 function detectApiBaseUrl() {
     // 1. 优先使用 localStorage 中存储的配置
     const savedUrl = localStorage.getItem('api_base_url');
     if (savedUrl) return savedUrl;
 
-    // 2. 如果在 GitHub Pages 上，使用 Render 后端
-    if (window.location.hostname.includes('github.io')) {
-        return 'https://film-archive-backend.onrender.com/api';
-    }
-
-    // 3. 如果页面是通过 HTTP/HTTPS 访问的，尝试推断后端地址
-    if (window.location.protocol.startsWith('http')) {
-        // 同域名不同端口
-        return `${window.location.protocol}//${window.location.hostname}:8000/api`;
-    }
-
-    // 4. 默认本地开发地址
-    return 'http://localhost:8000/api';
+    // 2. 默认使用 Supabase Edge Function
+    return SUPABASE_URL;
 }
 
 const API_BASE_URL = detectApiBaseUrl();
@@ -69,10 +62,11 @@ const Auth = {
 const API = {
     async checkHealth() {
         try {
-            const response = await fetch(`${API_BASE_URL.replace('/api', '')}/health`, {
+            const response = await fetch(`${API_BASE_URL}/health`, {
                 method: 'GET',
                 mode: 'cors',
-                cache: 'no-cache'
+                cache: 'no-cache',
+                headers: { 'apikey': SUPABASE_ANON_KEY }
             });
             apiAvailable = response.ok;
             return response.ok;
@@ -87,14 +81,13 @@ const API = {
         const url = `${API_BASE_URL}${endpoint}`;
         const headers = {
             'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
             ...options.headers
         };
 
-        // Add auth token if available
+        // Add user auth token if available, otherwise use anon key
         const token = Auth.getToken();
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
+        headers['Authorization'] = token ? `Bearer ${token}` : `Bearer ${SUPABASE_ANON_KEY}`;
 
         try {
             const response = await fetch(url, {
@@ -134,7 +127,11 @@ const API = {
         try {
             const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                },
                 body: JSON.stringify({ refresh_token: Auth.getRefreshToken() }),
                 mode: 'cors'
             });
@@ -264,7 +261,7 @@ const AuthUI = {
         // Check if backend is available first
         API.checkHealth().then(available => {
             if (!available) {
-                alert('后端服务未启动，请先启动后端服务:\n\ncd backend && uvicorn app.main:app --reload');
+                alert('后端服务暂时无法连接，请稍后重试');
                 return;
             }
             document.getElementById('auth-modal').classList.remove('hidden');
