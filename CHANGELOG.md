@@ -9,8 +9,37 @@
 
 ## [Unreleased]
 
+---
+
+## [2.3.0] - 2026-04-20
+
 ### Added
-- 正在开发中的功能...
+- **Supabase Edge Function 后端集成**：`backend/api.js` 全面对接 Supabase Edge Function，支持标准响应信封 `{data: ...}` / `{error: ...}`
+- `API.search(query)` — 全文搜索接口，调用 `GET /search?q=`
+- `API.stats()` — 统计概览接口，调用 `GET /stats`
+- `API.sync.fetchAll()` — 并行拉取服务端所有胶卷和照片（`Promise.all`）
+
+### Changed
+- **登录字段改为邮箱**：登录表单由用户名改为邮箱输入（`type="email"`，`id="lp-email"`）
+- `API.auth.login()` 参数由 `username` 改为 `email`，Token 从 `data.data.session` 中解析
+- `API.auth.logout()` 升级为异步方法，先向服务端 `POST /auth/logout`，再清除本地 Token
+- `API.auth.me()` 自动兼容 `response.data.user` 与直接返回 user 对象两种格式
+- 照片接口扁平化：`/rolls/{id}/photos` 统一迁移至 `/photos`（`roll_id` 作为查询参数或请求体字段），调用方签名不变
+- `API.rolls.list()` 响应字段由 `data.items` 改为 `data.data`
+- `API.sync.export()` 更名为 `API.sync.fetchAll()`，使用并行请求替代单一导出接口
+- `AuthUI.showRegisterModal()` 修复：现在正确跳转到注册标签页，而非停留在登录页
+- 同步成功 Toast 字段由 `result.synced_rolls/synced_photos` 改为 `result.data.rolls/photos`
+- 错误响应字段由 `detail` 改为 `error`，与 Supabase 标准一致
+- `Auth.setTokens()` 仅在 refresh token 存在时才写入，避免存入 `null`
+
+### Fixed
+- **关键修复**：`auth.login()` 现在校验 `session.access_token` 是否有效，防止 `undefined` 被写入 localStorage（之前会导致所有后续请求静默失效）
+- **401 处理修复**：移除失效的 refresh token 重试逻辑（Supabase Edge Function 不提供 `/auth/refresh`）；Token 过期时直接清除 Session 并跳转登录页
+- `AuthUI.updateUI()` 显示名改为 `user.username || user.email || '用户'`，兼容不同用户对象结构
+
+### Removed
+- `API.refreshToken()` 方法（Supabase 无对应端点）
+- `AuthUI.login()` 和 `AuthUI.register()` 方法（逻辑已统一至 `index.html` 的 `doLogin()` / `doRegister()`）
 
 ---
 
@@ -77,7 +106,8 @@
 
 ---
 
-[Unreleased]: https://github.com/guojunshuo47-lang/film-archive/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/guojunshuo47-lang/film-archive/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/guojunshuo47-lang/film-archive/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/guojunshuo47-lang/film-archive/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/guojunshuo47-lang/film-archive/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/guojunshuo47-lang/film-archive/compare/v1.3.0...v2.0.0
