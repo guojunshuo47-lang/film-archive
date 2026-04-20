@@ -6,13 +6,13 @@ from sqlalchemy import select, and_, delete
 
 from app.database import get_db
 from app.models import User, Roll, Photo
-from app.schemas import SyncData, SyncResponse
+from app.schemas import SyncData, SyncDataResponse
 from app.auth import get_current_user
 
 router = APIRouter(prefix="/sync", tags=["sync"])
 
 
-@router.post("", response_model=SyncResponse)
+@router.post("", response_model=SyncDataResponse)
 async def sync_data(
     sync_data: SyncData,
     db: AsyncSession = Depends(get_db),

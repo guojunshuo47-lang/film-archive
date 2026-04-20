@@ -1,15 +1,14 @@
+import uuid
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
-from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models import User, Roll, Photo
 from app.schemas import (
     RollCreate, RollUpdate, RollResponse, RollListResponse,
     PhotoCreate, PhotoUpdate, PhotoResponse, PhotoListResponse,
-    SyncData, SyncResponse
 )
 from app.auth import get_current_user
 
@@ -62,28 +61,30 @@ async def list_rolls(
     return {"data": [r.model_dump(mode="json") for r in roll_responses]}
 
 
-@router.post("", response_model=RollResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_roll(
     roll_data: RollCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """创建新胶卷"""
+    roll_id = roll_data.roll_id or f"roll-{uuid.uuid4().hex[:8]}"
+
     # 检查 roll_id 是否已存在
     result = await db.execute(
         select(Roll).where(
-            and_(Roll.user_id == current_user.id, Roll.roll_id == roll_data.roll_id)
+            and_(Roll.user_id == current_user.id, Roll.roll_id == roll_id)
         )
     )
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Roll with ID '{roll_data.roll_id}' already exists"
+            detail=f"Roll with ID '{roll_id}' already exists"
         )
 
     new_roll = Roll(
         user_id=current_user.id,
-        roll_id=roll_data.roll_id,
+        roll_id=roll_id,
         film_stock=roll_data.film_stock,
         camera=roll_data.camera,
         iso=roll_data.iso,
@@ -96,7 +97,7 @@ async def create_roll(
     await db.flush()
     await db.refresh(new_roll)
 
-    return RollResponse(
+    roll_resp = RollResponse(
         id=new_roll.id,
         user_id=new_roll.user_id,
         roll_id=new_roll.roll_id,
@@ -114,9 +115,10 @@ async def create_roll(
         updated_at=new_roll.updated_at,
         photo_count=0
     )
+    return {"data": roll_resp.model_dump(mode="json")}
 
 
-@router.get("/{roll_id}", response_model=RollResponse)
+@router.get("/{roll_id}")
 async def get_roll(
     roll_id: int,
     db: AsyncSession = Depends(get_db),
@@ -137,7 +139,7 @@ async def get_roll(
     )
     photo_count = photo_count_result.scalar()
 
-    return RollResponse(
+    roll_resp = RollResponse(
         id=roll.id,
         user_id=roll.user_id,
         roll_id=roll.roll_id,
@@ -155,9 +157,10 @@ async def get_roll(
         updated_at=roll.updated_at,
         photo_count=photo_count
     )
+    return {"data": roll_resp.model_dump(mode="json")}
 
 
-@router.put("/{roll_id}", response_model=RollResponse)
+@router.put("/{roll_id}")
 async def update_roll(
     roll_id: int,
     roll_data: RollUpdate,
@@ -187,7 +190,7 @@ async def update_roll(
     )
     photo_count = photo_count_result.scalar()
 
-    return RollResponse(
+    roll_resp = RollResponse(
         id=roll.id,
         user_id=roll.user_id,
         roll_id=roll.roll_id,
@@ -205,6 +208,7 @@ async def update_roll(
         updated_at=roll.updated_at,
         photo_count=photo_count
     )
+    return {"data": roll_resp.model_dump(mode="json")}
 
 
 @router.delete("/{roll_id}")

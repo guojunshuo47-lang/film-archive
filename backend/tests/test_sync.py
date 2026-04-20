@@ -14,15 +14,24 @@ async def _get_export(client):
     return resp.json()
 
 
+def _token(login_resp):
+    return login_resp.json()["data"]["session"]["access_token"]
+
+
+def _sync_counts(resp):
+    """Extract roll/photo counts from the new {data: {rolls, photos}} format."""
+    return resp.json()["data"]
+
+
 # ── POST /api/sync ────────────────────────────────────────────────────────────
 
 async def test_sync_empty_payload_succeeds(auth_client):
     resp = await auth_client.post("/api/sync", json={"rolls": [], "photos": []})
     assert resp.status_code == 200
-    data = resp.json()
-    assert data["success"] is True
-    assert data["synced_rolls"] == 0
-    assert data["synced_photos"] == 0
+    data = _sync_counts(resp)
+    assert data["rolls"] == 0
+    assert data["photos"] == 0
+    assert data["errors"] == []
 
 
 async def test_sync_creates_new_roll_camelcase_keys(auth_client):
@@ -33,7 +42,7 @@ async def test_sync_creates_new_roll_camelcase_keys(auth_client):
     }
     resp = await auth_client.post("/api/sync", json=payload)
     assert resp.status_code == 200
-    assert resp.json()["synced_rolls"] == 1
+    assert _sync_counts(resp)["rolls"] == 1
 
     export = await _get_export(auth_client)
     roll_ids = [r["roll_id"] for r in export["rolls"]]
@@ -48,7 +57,7 @@ async def test_sync_creates_new_roll_snake_case_keys(auth_client):
     }
     resp = await auth_client.post("/api/sync", json=payload)
     assert resp.status_code == 200
-    assert resp.json()["synced_rolls"] == 1
+    assert _sync_counts(resp)["rolls"] == 1
 
     export = await _get_export(auth_client)
     roll_ids = [r["roll_id"] for r in export["rolls"]]
@@ -57,17 +66,15 @@ async def test_sync_creates_new_roll_snake_case_keys(auth_client):
 
 async def test_sync_updates_existing_roll(auth_client):
     """Syncing the same roll_id twice should update, not duplicate."""
-    # First sync — create
     await auth_client.post(
         "/api/sync",
         json={"rolls": [{"rollId": "R-update", "filmStock": "Kodak"}], "photos": []},
     )
-    # Second sync — update with new film_stock
     resp = await auth_client.post(
         "/api/sync",
         json={"rolls": [{"rollId": "R-update", "filmStock": "Fuji 400H"}], "photos": []},
     )
-    assert resp.json()["synced_rolls"] == 1
+    assert _sync_counts(resp)["rolls"] == 1
 
     export = await _get_export(auth_client)
     rolls = [r for r in export["rolls"] if r["roll_id"] == "R-update"]
@@ -77,7 +84,6 @@ async def test_sync_updates_existing_roll(auth_client):
 
 async def test_sync_creates_photo_camelcase_keys(auth_client):
     """Bug Fix 1: camelCase photo keys (rollId, frameNumber) must work."""
-    # First create a roll so the photo has a parent
     await auth_client.post(
         "/api/sync",
         json={"rolls": [{"rollId": "R-photo-camel"}], "photos": []},
@@ -88,7 +94,7 @@ async def test_sync_creates_photo_camelcase_keys(auth_client):
     }
     resp = await auth_client.post("/api/sync", json=payload)
     assert resp.status_code == 200
-    assert resp.json()["synced_photos"] == 1
+    assert _sync_counts(resp)["photos"] == 1
 
 
 async def test_sync_creates_photo_snake_case_keys(auth_client):
@@ -103,12 +109,11 @@ async def test_sync_creates_photo_snake_case_keys(auth_client):
     }
     resp = await auth_client.post("/api/sync", json=payload)
     assert resp.status_code == 200
-    assert resp.json()["synced_photos"] == 1
+    assert _sync_counts(resp)["photos"] == 1
 
 
 async def test_sync_updates_existing_photo(auth_client):
     """Syncing same roll+frame twice should update the photo."""
-    # Create roll and photo
     await auth_client.post(
         "/api/sync",
         json={
@@ -116,7 +121,6 @@ async def test_sync_updates_existing_photo(auth_client):
             "photos": [{"rollId": "R-photo-update", "frameNumber": 1, "note": "original"}],
         },
     )
-    # Update the photo
     resp = await auth_client.post(
         "/api/sync",
         json={
@@ -124,7 +128,7 @@ async def test_sync_updates_existing_photo(auth_client):
             "photos": [{"rollId": "R-photo-update", "frameNumber": 1, "note": "updated"}],
         },
     )
-    assert resp.json()["synced_photos"] == 1
+    assert _sync_counts(resp)["photos"] == 1
 
     export = await _get_export(auth_client)
     photos = [p for p in export["photos"] if p.get("note") == "updated"]
@@ -139,7 +143,7 @@ async def test_sync_photo_for_unknown_roll_is_skipped(auth_client):
     }
     resp = await auth_client.post("/api/sync", json=payload)
     assert resp.status_code == 200
-    assert resp.json()["synced_photos"] == 0
+    assert _sync_counts(resp)["photos"] == 0
 
 
 async def test_sync_rolls_and_photos_together(auth_client):
@@ -150,9 +154,9 @@ async def test_sync_rolls_and_photos_together(auth_client):
     }
     resp = await auth_client.post("/api/sync", json=payload)
     assert resp.status_code == 200
-    data = resp.json()
-    assert data["synced_rolls"] == 1
-    assert data["synced_photos"] == 1
+    data = _sync_counts(resp)
+    assert data["rolls"] == 1
+    assert data["photos"] == 1
 
 
 async def test_sync_mixed_camelcase_and_snake_case(auth_client):
@@ -166,7 +170,7 @@ async def test_sync_mixed_camelcase_and_snake_case(auth_client):
     }
     resp = await auth_client.post("/api/sync", json=payload)
     assert resp.status_code == 200
-    assert resp.json()["synced_rolls"] == 2
+    assert _sync_counts(resp)["rolls"] == 2
 
     export = await _get_export(auth_client)
     roll_ids = [r["roll_id"] for r in export["rolls"]]
@@ -191,12 +195,12 @@ async def test_export_empty_returns_empty_lists(auth_client):
 async def test_export_returns_only_own_data(client):
     """User isolation: export must not include other users' data."""
     await client.post("/api/auth/register", json={"username": "expA", "email": "expA@x.com", "password": "pass1234"})
-    rA = await client.post("/api/auth/login", json={"username": "expA", "password": "pass1234"})
-    headers_a = {"Authorization": f"Bearer {rA.json()['access_token']}"}
+    rA = await client.post("/api/auth/login", json={"email": "expA@x.com", "password": "pass1234"})
+    headers_a = {"Authorization": f"Bearer {_token(rA)}"}
 
     await client.post("/api/auth/register", json={"username": "expB", "email": "expB@x.com", "password": "pass1234"})
-    rB = await client.post("/api/auth/login", json={"username": "expB", "password": "pass1234"})
-    headers_b = {"Authorization": f"Bearer {rB.json()['access_token']}"}
+    rB = await client.post("/api/auth/login", json={"email": "expB@x.com", "password": "pass1234"})
+    headers_b = {"Authorization": f"Bearer {_token(rB)}"}
 
     await client.post("/api/sync", json={"rolls": [{"rollId": "A-1"}, {"rollId": "A-2"}], "photos": []}, headers=headers_a)
     await client.post("/api/sync", json={"rolls": [{"rollId": "B-1"}], "photos": []}, headers=headers_b)
@@ -222,9 +226,8 @@ async def test_export_roll_fields_present(auth_client):
 
 
 async def test_export_photo_fields_present(auth_client):
-    # Create via rolls API (not sync) to ensure the roll has an integer pk
     roll_resp = await auth_client.post("/api/rolls", json={"roll_id": "Photo-Fields-Roll"})
-    roll_id = roll_resp.json()["id"]
+    roll_id = roll_resp.json()["data"]["id"]
     await auth_client.post(
         f"/api/rolls/{roll_id}/photos",
         json={"roll_id": roll_id, "frame_number": 1, "rating": 3, "tags": ["test"]},
