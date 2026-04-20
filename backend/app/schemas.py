@@ -110,7 +110,7 @@ class PhotoBase(BaseModel):
 
 
 class PhotoCreate(PhotoBase):
-    roll_id: int
+    roll_id: Union[int, str]  # DB integer id or user-visible string (e.g. "Roll-001")
     image_url: Optional[str] = None
     thumbnail_url: Optional[str] = None
     exif_data: Optional[Dict[str, Any]] = None
