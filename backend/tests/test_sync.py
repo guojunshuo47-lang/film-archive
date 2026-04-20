@@ -195,11 +195,11 @@ async def test_export_empty_returns_empty_lists(auth_client):
 async def test_export_returns_only_own_data(client):
     """User isolation: export must not include other users' data."""
     await client.post("/api/auth/register", json={"username": "expA", "email": "expA@x.com", "password": "pass1234"})
-    rA = await client.post("/api/auth/login", json={"username": "expA", "password": "pass1234"})
+    rA = await client.post("/api/auth/login", json={"email": "expA@x.com", "password": "pass1234"})
     headers_a = {"Authorization": f"Bearer {_token(rA)}"}
 
     await client.post("/api/auth/register", json={"username": "expB", "email": "expB@x.com", "password": "pass1234"})
-    rB = await client.post("/api/auth/login", json={"username": "expB", "password": "pass1234"})
+    rB = await client.post("/api/auth/login", json={"email": "expB@x.com", "password": "pass1234"})
     headers_b = {"Authorization": f"Bearer {_token(rB)}"}
 
     await client.post("/api/sync", json={"rolls": [{"rollId": "A-1"}, {"rollId": "A-2"}], "photos": []}, headers=headers_a)

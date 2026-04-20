@@ -53,11 +53,11 @@ async def test_list_photos_roll_not_found_returns_404(auth_client):
 
 async def test_list_photos_other_users_roll_returns_404(client):
     await client.post("/api/auth/register", json={"username": "pOwner", "email": "po@x.com", "password": "pass1234"})
-    rO = await client.post("/api/auth/login", json={"username": "pOwner", "password": "pass1234"})
+    rO = await client.post("/api/auth/login", json={"email": "po@x.com", "password": "pass1234"})
     headers_owner = {"Authorization": f"Bearer {_token(rO)}"}
 
     await client.post("/api/auth/register", json={"username": "pThief", "email": "pt@x.com", "password": "pass1234"})
-    rT = await client.post("/api/auth/login", json={"username": "pThief", "password": "pass1234"})
+    rT = await client.post("/api/auth/login", json={"email": "pt@x.com", "password": "pass1234"})
     headers_thief = {"Authorization": f"Bearer {_token(rT)}"}
 
     roll_resp = await client.post("/api/rolls", json={"roll_id": "PrivateRoll"}, headers=headers_owner)
@@ -146,11 +146,11 @@ async def test_create_photo_roll_not_found_returns_404(auth_client):
 
 async def test_create_photo_other_users_roll_returns_404(client):
     await client.post("/api/auth/register", json={"username": "cpOwner", "email": "cpo@x.com", "password": "pass1234"})
-    rO = await client.post("/api/auth/login", json={"username": "cpOwner", "password": "pass1234"})
+    rO = await client.post("/api/auth/login", json={"email": "cpo@x.com", "password": "pass1234"})
     headers_owner = {"Authorization": f"Bearer {_token(rO)}"}
 
     await client.post("/api/auth/register", json={"username": "cpThief", "email": "cpt@x.com", "password": "pass1234"})
-    rT = await client.post("/api/auth/login", json={"username": "cpThief", "password": "pass1234"})
+    rT = await client.post("/api/auth/login", json={"email": "cpt@x.com", "password": "pass1234"})
     headers_thief = {"Authorization": f"Bearer {_token(rT)}"}
 
     roll_resp = await client.post("/api/rolls", json={"roll_id": "PvtRoll"}, headers=headers_owner)
@@ -256,11 +256,11 @@ async def test_update_photo_wrong_roll_returns_404(auth_client):
 
 async def test_update_photo_other_users_photo_returns_404(client):
     await client.post("/api/auth/register", json={"username": "upOwner", "email": "upo@x.com", "password": "pass1234"})
-    rO = await client.post("/api/auth/login", json={"username": "upOwner", "password": "pass1234"})
+    rO = await client.post("/api/auth/login", json={"email": "upo@x.com", "password": "pass1234"})
     headers_owner = {"Authorization": f"Bearer {_token(rO)}"}
 
     await client.post("/api/auth/register", json={"username": "upThief", "email": "upt@x.com", "password": "pass1234"})
-    rT = await client.post("/api/auth/login", json={"username": "upThief", "password": "pass1234"})
+    rT = await client.post("/api/auth/login", json={"email": "upt@x.com", "password": "pass1234"})
     headers_thief = {"Authorization": f"Bearer {_token(rT)}"}
 
     roll_resp = await client.post("/api/rolls", json={"roll_id": "OwnedRoll"}, headers=headers_owner)
@@ -316,11 +316,11 @@ async def test_delete_photo_wrong_roll_returns_404(auth_client):
 
 async def test_delete_photo_other_users_photo_returns_404(client):
     await client.post("/api/auth/register", json={"username": "dpOwner", "email": "dpo@x.com", "password": "pass1234"})
-    rO = await client.post("/api/auth/login", json={"username": "dpOwner", "password": "pass1234"})
+    rO = await client.post("/api/auth/login", json={"email": "dpo@x.com", "password": "pass1234"})
     headers_owner = {"Authorization": f"Bearer {_token(rO)}"}
 
     await client.post("/api/auth/register", json={"username": "dpThief", "email": "dpt@x.com", "password": "pass1234"})
-    rT = await client.post("/api/auth/login", json={"username": "dpThief", "password": "pass1234"})
+    rT = await client.post("/api/auth/login", json={"email": "dpt@x.com", "password": "pass1234"})
     headers_thief = {"Authorization": f"Bearer {_token(rT)}"}
 
     roll_resp = await client.post("/api/rolls", json={"roll_id": "MyRoll"}, headers=headers_owner)

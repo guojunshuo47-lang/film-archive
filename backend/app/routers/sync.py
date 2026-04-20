@@ -6,7 +6,7 @@ from sqlalchemy import select, and_, delete
 
 from app.database import get_db
 from app.models import User, Roll, Photo
-from app.schemas import SyncData, SyncDataResponse, SyncResultData
+from app.schemas import SyncData, SyncDataResponse
 from app.auth import get_current_user
 
 router = APIRouter(prefix="/sync", tags=["sync"])
@@ -18,112 +18,112 @@ async def sync_data(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """批量同步数据（从 localStorage 迁移或离线同步）"""
+    """
+    批量同步数据（用于从 localStorage 迁移或离线同步）
+    会覆盖现有数据，请谨慎使用
+    """
     synced_rolls = 0
     synced_photos = 0
-    errors: List[str] = []
 
     try:
         # 处理胶卷数据
         for roll_dict in sync_data.rolls:
-            try:
-                roll_id_val = roll_dict.get("rollId") or roll_dict.get("roll_id")
-                result = await db.execute(
-                    select(Roll).where(
-                        and_(Roll.user_id == current_user.id, Roll.roll_id == roll_id_val)
+            # 检查是否已存在
+            result = await db.execute(
+                select(Roll).where(
+                    and_(
+                        Roll.user_id == current_user.id,
+                        Roll.roll_id == (roll_dict.get("rollId") or roll_dict.get("roll_id"))
                     )
                 )
-                existing_roll = result.scalar_one_or_none()
+            )
+            existing_roll = result.scalar_one_or_none()
 
-                if existing_roll:
-                    existing_roll.film_stock = roll_dict.get("filmStock") or roll_dict.get("film_stock")
-                    existing_roll.camera = roll_dict.get("camera")
-                    existing_roll.iso = roll_dict.get("iso")
-                    existing_roll.total_frames = roll_dict.get("totalFrames") or roll_dict.get("total_frames", 36)
-                    existing_roll.status = roll_dict.get("status", "shooting")
-                    existing_roll.note = roll_dict.get("note")
-                    existing_roll.custom_data = roll_dict.get("customData") or roll_dict.get("custom_data", {})
-                else:
-                    new_roll = Roll(
-                        user_id=current_user.id,
-                        roll_id=roll_id_val,
-                        film_stock=roll_dict.get("filmStock") or roll_dict.get("film_stock"),
-                        camera=roll_dict.get("camera"),
-                        iso=roll_dict.get("iso"),
-                        total_frames=roll_dict.get("totalFrames") or roll_dict.get("total_frames", 36),
-                        status=roll_dict.get("status", "shooting"),
-                        note=roll_dict.get("note"),
-                        custom_data=roll_dict.get("customData") or roll_dict.get("custom_data", {})
-                    )
-                    db.add(new_roll)
-                    await db.flush()
+            if existing_roll:
+                # 更新现有胶卷
+                existing_roll.film_stock = roll_dict.get("filmStock") or roll_dict.get("film_stock")
+                existing_roll.camera = roll_dict.get("camera")
+                existing_roll.iso = roll_dict.get("iso")
+                existing_roll.total_frames = roll_dict.get("totalFrames") or roll_dict.get("total_frames", 36)
+                existing_roll.status = roll_dict.get("status", "shooting")
+                existing_roll.note = roll_dict.get("note")
+                existing_roll.custom_data = roll_dict.get("customData") or roll_dict.get("custom_data", {})
+            else:
+                # 创建新胶卷
+                new_roll = Roll(
+                    user_id=current_user.id,
+                    roll_id=roll_dict.get("rollId") or roll_dict.get("roll_id"),
+                    film_stock=roll_dict.get("filmStock") or roll_dict.get("film_stock"),
+                    camera=roll_dict.get("camera"),
+                    iso=roll_dict.get("iso"),
+                    total_frames=roll_dict.get("totalFrames") or roll_dict.get("total_frames", 36),
+                    status=roll_dict.get("status", "shooting"),
+                    note=roll_dict.get("note"),
+                    custom_data=roll_dict.get("customData") or roll_dict.get("custom_data", {})
+                )
+                db.add(new_roll)
+                await db.flush()
 
-                synced_rolls += 1
-            except Exception as e:
-                errors.append(f"Roll sync error: {str(e)}")
+            synced_rolls += 1
 
         # 处理照片数据
         for photo_dict in sync_data.photos:
-            try:
-                roll_result = await db.execute(
-                    select(Roll).where(
+            # 查找对应的胶卷
+            roll_result = await db.execute(
+                select(Roll).where(
+                    and_(
+                        Roll.user_id == current_user.id,
+                        Roll.roll_id == (photo_dict.get("rollId") or photo_dict.get("roll_id"))
+                    )
+                )
+            )
+            roll = roll_result.scalar_one_or_none()
+
+            if roll:
+                # 检查照片是否已存在
+                photo_result = await db.execute(
+                    select(Photo).where(
                         and_(
-                            Roll.user_id == current_user.id,
-                            Roll.roll_id == (photo_dict.get("rollId") or photo_dict.get("roll_id"))
+                            Photo.user_id == current_user.id,
+                            Photo.roll_id == roll.id,
+                            Photo.frame_number == (photo_dict.get("frameNumber") or photo_dict.get("frame_number"))
                         )
                     )
                 )
-                roll = roll_result.scalar_one_or_none()
+                existing_photo = photo_result.scalar_one_or_none()
 
-                if roll:
-                    frame_num = photo_dict.get("frameNumber") or photo_dict.get("frame_number")
-                    photo_result = await db.execute(
-                        select(Photo).where(
-                            and_(
-                                Photo.user_id == current_user.id,
-                                Photo.roll_id == roll.id,
-                                Photo.frame_number == frame_num
-                            )
-                        )
+                if existing_photo:
+                    # 更新现有照片
+                    existing_photo.image_url = photo_dict.get("imageUrl") or photo_dict.get("image_url")
+                    existing_photo.thumbnail_url = photo_dict.get("thumbnailUrl") or photo_dict.get("thumbnail_url")
+                    existing_photo.note = photo_dict.get("note")
+                    existing_photo.rating = photo_dict.get("rating")
+                    existing_photo.tags = photo_dict.get("tags", [])
+                    existing_photo.exif_data = photo_dict.get("exifData") or photo_dict.get("exif_data", {})
+                else:
+                    # 创建新照片
+                    new_photo = Photo(
+                        user_id=current_user.id,
+                        roll_id=roll.id,
+                        frame_number=photo_dict.get("frameNumber") or photo_dict.get("frame_number"),
+                        image_url=photo_dict.get("imageUrl") or photo_dict.get("image_url"),
+                        thumbnail_url=photo_dict.get("thumbnailUrl") or photo_dict.get("thumbnail_url"),
+                        note=photo_dict.get("note"),
+                        rating=photo_dict.get("rating"),
+                        tags=photo_dict.get("tags", []),
+                        exif_data=photo_dict.get("exifData") or photo_dict.get("exif_data", {})
                     )
-                    existing_photo = photo_result.scalar_one_or_none()
+                    db.add(new_photo)
 
-                    if existing_photo:
-                        existing_photo.image_url = photo_dict.get("imageUrl") or photo_dict.get("image_url")
-                        existing_photo.thumbnail_url = photo_dict.get("thumbnailUrl") or photo_dict.get("thumbnail_url")
-                        existing_photo.note = photo_dict.get("note")
-                        existing_photo.rating = photo_dict.get("rating")
-                        existing_photo.tags = photo_dict.get("tags", [])
-                        existing_photo.exif_data = photo_dict.get("exifData") or photo_dict.get("exif_data", {})
-                    else:
-                        new_photo = Photo(
-                            user_id=current_user.id,
-                            roll_id=roll.id,
-                            frame_number=frame_num or 1,
-                            image_url=photo_dict.get("imageUrl") or photo_dict.get("image_url"),
-                            thumbnail_url=photo_dict.get("thumbnailUrl") or photo_dict.get("thumbnail_url"),
-                            note=photo_dict.get("note"),
-                            rating=photo_dict.get("rating"),
-                            tags=photo_dict.get("tags", []),
-                            exif_data=photo_dict.get("exifData") or photo_dict.get("exif_data", {})
-                        )
-                        db.add(new_photo)
-
-                    synced_photos += 1
-            except Exception as e:
-                errors.append(f"Photo sync error: {str(e)}")
+                synced_photos += 1
 
         await db.commit()
 
-        return SyncDataResponse(
-            data=SyncResultData(rolls=synced_rolls, photos=synced_photos, errors=errors)
-        )
+        return {"data": {"rolls": synced_rolls, "photos": synced_photos}}
 
     except Exception as e:
         await db.rollback()
-        return SyncDataResponse(
-            data=SyncResultData(rolls=synced_rolls, photos=synced_photos, errors=[str(e)])
-        )
+        raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")
 
 
 @router.get("/export")
@@ -131,12 +131,14 @@ async def export_data(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """导出用户所有数据（备份用）"""
+    """导出用户所有数据（用于备份）"""
+    # 获取所有胶卷
     roll_result = await db.execute(
         select(Roll).where(Roll.user_id == current_user.id)
     )
     rolls = roll_result.scalars().all()
 
+    # 获取所有照片
     photo_result = await db.execute(
         select(Photo).where(Photo.user_id == current_user.id)
     )

@@ -3,42 +3,19 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
-from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models import User, Roll, Photo
 from app.schemas import (
     RollCreate, RollUpdate, RollResponse, RollListResponse,
-    RollsDataResponse, RollDataResponse,
-    PhotoCreate, PhotoUpdate, PhotoResponse, PhotoListResponse
+    PhotoCreate, PhotoUpdate, PhotoResponse, PhotoListResponse,
 )
 from app.auth import get_current_user
 
 router = APIRouter(prefix="/rolls", tags=["rolls"])
 
 
-def _make_roll_response(roll: Roll, photo_count: int = 0) -> RollResponse:
-    return RollResponse(
-        id=roll.id,
-        user_id=roll.user_id,
-        roll_id=roll.roll_id,
-        film_stock=roll.film_stock,
-        camera=roll.camera,
-        iso=roll.iso,
-        total_frames=roll.total_frames,
-        status=roll.status,
-        date_created=roll.date_created,
-        date_finished=roll.date_finished,
-        date_developed=roll.date_developed,
-        note=roll.note,
-        custom_data=roll.custom_data or {},
-        created_at=roll.created_at,
-        updated_at=roll.updated_at,
-        photo_count=photo_count
-    )
-
-
-@router.get("", response_model=RollsDataResponse)
+@router.get("")
 async def list_rolls(
     status: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
@@ -59,21 +36,41 @@ async def list_rolls(
     result = await db.execute(query)
     rows = result.all()
 
-    roll_responses = [_make_roll_response(roll, photo_count) for roll, photo_count in rows]
-    return RollsDataResponse(data=roll_responses)
+    roll_responses = [
+        RollResponse(
+            id=roll.id,
+            user_id=roll.user_id,
+            roll_id=roll.roll_id,
+            film_stock=roll.film_stock,
+            camera=roll.camera,
+            iso=roll.iso,
+            total_frames=roll.total_frames,
+            status=roll.status,
+            date_created=roll.date_created,
+            date_finished=roll.date_finished,
+            date_developed=roll.date_developed,
+            note=roll.note,
+            custom_data=roll.custom_data or {},
+            created_at=roll.created_at,
+            updated_at=roll.updated_at,
+            photo_count=photo_count
+        )
+        for roll, photo_count in rows
+    ]
+
+    return {"data": [r.model_dump(mode="json") for r in roll_responses]}
 
 
-@router.post("", response_model=RollDataResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_roll(
     roll_data: RollCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """创建新胶卷 — roll_id 可选，不填则自动生成"""
-    # Auto-generate roll_id if not provided
+    """创建新胶卷"""
     roll_id = roll_data.roll_id or f"roll-{uuid.uuid4().hex[:8]}"
 
-    # Check uniqueness
+    # 检查 roll_id 是否已存在
     result = await db.execute(
         select(Roll).where(
             and_(Roll.user_id == current_user.id, Roll.roll_id == roll_id)
@@ -100,10 +97,28 @@ async def create_roll(
     await db.flush()
     await db.refresh(new_roll)
 
-    return RollDataResponse(data=_make_roll_response(new_roll))
+    roll_resp = RollResponse(
+        id=new_roll.id,
+        user_id=new_roll.user_id,
+        roll_id=new_roll.roll_id,
+        film_stock=new_roll.film_stock,
+        camera=new_roll.camera,
+        iso=new_roll.iso,
+        total_frames=new_roll.total_frames,
+        status=new_roll.status,
+        date_created=new_roll.date_created,
+        date_finished=new_roll.date_finished,
+        date_developed=new_roll.date_developed,
+        note=new_roll.note,
+        custom_data=new_roll.custom_data or {},
+        created_at=new_roll.created_at,
+        updated_at=new_roll.updated_at,
+        photo_count=0
+    )
+    return {"data": roll_resp.model_dump(mode="json")}
 
 
-@router.get("/{roll_id}", response_model=RollDataResponse)
+@router.get("/{roll_id}")
 async def get_roll(
     roll_id: int,
     db: AsyncSession = Depends(get_db),
@@ -118,15 +133,34 @@ async def get_roll(
     if not roll:
         raise HTTPException(status_code=404, detail="Roll not found")
 
+    # 获取照片数量
     photo_count_result = await db.execute(
         select(func.count()).where(Photo.roll_id == roll.id)
     )
     photo_count = photo_count_result.scalar()
 
-    return RollDataResponse(data=_make_roll_response(roll, photo_count))
+    roll_resp = RollResponse(
+        id=roll.id,
+        user_id=roll.user_id,
+        roll_id=roll.roll_id,
+        film_stock=roll.film_stock,
+        camera=roll.camera,
+        iso=roll.iso,
+        total_frames=roll.total_frames,
+        status=roll.status,
+        date_created=roll.date_created,
+        date_finished=roll.date_finished,
+        date_developed=roll.date_developed,
+        note=roll.note,
+        custom_data=roll.custom_data or {},
+        created_at=roll.created_at,
+        updated_at=roll.updated_at,
+        photo_count=photo_count
+    )
+    return {"data": roll_resp.model_dump(mode="json")}
 
 
-@router.put("/{roll_id}", response_model=RollDataResponse)
+@router.put("/{roll_id}")
 async def update_roll(
     roll_id: int,
     roll_data: RollUpdate,
@@ -142,6 +176,7 @@ async def update_roll(
     if not roll:
         raise HTTPException(status_code=404, detail="Roll not found")
 
+    # 更新字段
     update_data = roll_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(roll, field, value)
@@ -149,12 +184,31 @@ async def update_roll(
     await db.flush()
     await db.refresh(roll)
 
+    # 获取照片数量
     photo_count_result = await db.execute(
         select(func.count()).where(Photo.roll_id == roll.id)
     )
     photo_count = photo_count_result.scalar()
 
-    return RollDataResponse(data=_make_roll_response(roll, photo_count))
+    roll_resp = RollResponse(
+        id=roll.id,
+        user_id=roll.user_id,
+        roll_id=roll.roll_id,
+        film_stock=roll.film_stock,
+        camera=roll.camera,
+        iso=roll.iso,
+        total_frames=roll.total_frames,
+        status=roll.status,
+        date_created=roll.date_created,
+        date_finished=roll.date_finished,
+        date_developed=roll.date_developed,
+        note=roll.note,
+        custom_data=roll.custom_data or {},
+        created_at=roll.created_at,
+        updated_at=roll.updated_at,
+        photo_count=photo_count
+    )
+    return {"data": roll_resp.model_dump(mode="json")}
 
 
 @router.delete("/{roll_id}")
@@ -178,7 +232,7 @@ async def delete_roll(
     return {"message": "Roll deleted successfully"}
 
 
-# ============= Nested Photo Endpoints (kept for backward compat) =============
+# ============= Photo Endpoints =============
 
 @router.get("/{roll_id}/photos", response_model=PhotoListResponse)
 async def list_photos(
@@ -187,6 +241,7 @@ async def list_photos(
     current_user: User = Depends(get_current_user)
 ):
     """获取胶卷中的所有照片"""
+    # 验证胶卷归属
     result = await db.execute(
         select(Roll).where(and_(Roll.id == roll_id, Roll.user_id == current_user.id))
     )
@@ -214,6 +269,7 @@ async def create_photo(
     current_user: User = Depends(get_current_user)
 ):
     """添加照片到胶卷"""
+    # 验证胶卷归属
     result = await db.execute(
         select(Roll).where(and_(Roll.id == roll_id, Roll.user_id == current_user.id))
     )
@@ -221,16 +277,13 @@ async def create_photo(
     if not roll:
         raise HTTPException(status_code=404, detail="Roll not found")
 
-    # Auto-assign frame_number if not provided
-    if photo_data.frame_number is None:
-        count_result = await db.execute(
-            select(func.count()).where(Photo.roll_id == roll_id)
-        )
-        photo_data.frame_number = (count_result.scalar() or 0) + 1
-
+    # 检查帧号是否已存在
     result = await db.execute(
         select(Photo).where(
-            and_(Photo.roll_id == roll_id, Photo.frame_number == photo_data.frame_number)
+            and_(
+                Photo.roll_id == roll_id,
+                Photo.frame_number == photo_data.frame_number
+            )
         )
     )
     if result.scalar_one_or_none():
@@ -280,6 +333,7 @@ async def update_photo(
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
 
+    # 更新字段
     update_data = photo_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(photo, field, value)

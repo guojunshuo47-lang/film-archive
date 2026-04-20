@@ -56,7 +56,7 @@ async def auth_client(client):
     )
     resp = await client.post(
         "/api/auth/login",
-        json={"username": "testuser", "password": "testpass123"},
+        json={"email": "test@example.com", "password": "testpass123"},
     )
     token = resp.json()["data"]["session"]["access_token"]
     client.headers["Authorization"] = f"Bearer {token}"

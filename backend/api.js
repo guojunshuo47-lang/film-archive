@@ -103,7 +103,6 @@ const API = {
             });
 
             if (response.status === 401) {
-                const errBody = await response.json().catch(() => ({}));
                 if (Auth.getToken()) {
                     // Authenticated request expired — clear session and redirect
                     Auth.clearTokens();
@@ -111,6 +110,7 @@ const API = {
                     throw new Error('登录已过期，请重新登录');
                 }
                 // Unauthenticated request (e.g. login with wrong password)
+                const errBody = await response.json().catch(() => ({}));
                 throw new Error(errBody.error || '邮箱或密码错误');
             }
 
@@ -141,7 +141,8 @@ const API = {
                 body: JSON.stringify({ email, password })
             });
             const session = data.data?.session;
-            Auth.setTokens(session?.access_token, session?.refresh_token);
+            if (!session?.access_token) throw new Error('登录失败：服务器未返回令牌');
+            Auth.setTokens(session.access_token, session.refresh_token);
             return data;
         },
 
@@ -201,6 +202,7 @@ const API = {
             return data.data || [];
         },
 
+        // rollId kept for backward-compatible call sites; ignored by the flat API
         async create(rollId, photoData) {
             return API.request('/photos', {
                 method: 'POST',
@@ -266,6 +268,9 @@ const AuthUI = {
     showRegisterModal() {
         if (typeof showLoginPage === 'function') {
             showLoginPage();
+        }
+        if (typeof switchAuthTab === 'function') {
+            switchAuthTab('register');
         }
     },
 

@@ -42,11 +42,11 @@ async def test_list_rolls_returns_created_rolls(auth_client):
 
 async def test_list_rolls_returns_own_rolls_only(client):
     await client.post("/api/auth/register", json={"username": "userA", "email": "a@x.com", "password": "pass1234"})
-    resp_a = await client.post("/api/auth/login", json={"username": "userA", "password": "pass1234"})
+    resp_a = await client.post("/api/auth/login", json={"email": "a@x.com", "password": "pass1234"})
     headers_a = {"Authorization": f"Bearer {_token(resp_a)}"}
 
     await client.post("/api/auth/register", json={"username": "userB", "email": "b@x.com", "password": "pass1234"})
-    resp_b = await client.post("/api/auth/login", json={"username": "userB", "password": "pass1234"})
+    resp_b = await client.post("/api/auth/login", json={"email": "b@x.com", "password": "pass1234"})
     headers_b = {"Authorization": f"Bearer {_token(resp_b)}"}
 
     await client.post("/api/rolls", json={"roll_id": "A-1"}, headers=headers_a)
@@ -151,11 +151,11 @@ async def test_create_roll_duplicate_roll_id_returns_400(auth_client):
 async def test_create_roll_duplicate_roll_id_different_user_succeeds(client):
     """roll_id uniqueness is per user, not global."""
     await client.post("/api/auth/register", json={"username": "userX", "email": "userx@example.com", "password": "pass1234"})
-    rX = await client.post("/api/auth/login", json={"username": "userX", "password": "pass1234"})
+    rX = await client.post("/api/auth/login", json={"email": "userx@example.com", "password": "pass1234"})
     headers_x = {"Authorization": f"Bearer {_token(rX)}"}
 
     await client.post("/api/auth/register", json={"username": "userY", "email": "usery@example.com", "password": "pass1234"})
-    rY = await client.post("/api/auth/login", json={"username": "userY", "password": "pass1234"})
+    rY = await client.post("/api/auth/login", json={"email": "usery@example.com", "password": "pass1234"})
     headers_y = {"Authorization": f"Bearer {_token(rY)}"}
 
     resp_x = await client.post("/api/rolls", json={"roll_id": "Shared-001"}, headers=headers_x)
@@ -199,11 +199,11 @@ async def test_get_roll_nonexistent_returns_404(auth_client):
 
 async def test_get_roll_other_users_roll_returns_404(client):
     await client.post("/api/auth/register", json={"username": "ownerU", "email": "owner@x.com", "password": "pass1234"})
-    rO = await client.post("/api/auth/login", json={"username": "ownerU", "password": "pass1234"})
+    rO = await client.post("/api/auth/login", json={"email": "owner@x.com", "password": "pass1234"})
     headers_owner = {"Authorization": f"Bearer {_token(rO)}"}
 
     await client.post("/api/auth/register", json={"username": "thiefU", "email": "thief@x.com", "password": "pass1234"})
-    rT = await client.post("/api/auth/login", json={"username": "thiefU", "password": "pass1234"})
+    rT = await client.post("/api/auth/login", json={"email": "thief@x.com", "password": "pass1234"})
     headers_thief = {"Authorization": f"Bearer {_token(rT)}"}
 
     roll_resp = await client.post("/api/rolls", json={"roll_id": "Owners-Roll"}, headers=headers_owner)
@@ -247,11 +247,11 @@ async def test_update_roll_nonexistent_returns_404(auth_client):
 
 async def test_update_roll_other_users_roll_returns_404(client):
     await client.post("/api/auth/register", json={"username": "owner2", "email": "owner2@x.com", "password": "pass1234"})
-    rO = await client.post("/api/auth/login", json={"username": "owner2", "password": "pass1234"})
+    rO = await client.post("/api/auth/login", json={"email": "owner2@x.com", "password": "pass1234"})
     headers_owner = {"Authorization": f"Bearer {_token(rO)}"}
 
     await client.post("/api/auth/register", json={"username": "thief2", "email": "thief2@x.com", "password": "pass1234"})
-    rT = await client.post("/api/auth/login", json={"username": "thief2", "password": "pass1234"})
+    rT = await client.post("/api/auth/login", json={"email": "thief2@x.com", "password": "pass1234"})
     headers_thief = {"Authorization": f"Bearer {_token(rT)}"}
 
     roll_resp = await client.post("/api/rolls", json={"roll_id": "Protected"}, headers=headers_owner)
@@ -299,11 +299,11 @@ async def test_delete_roll_nonexistent_returns_404(auth_client):
 
 async def test_delete_roll_other_users_roll_returns_404(client):
     await client.post("/api/auth/register", json={"username": "owner3", "email": "owner3@x.com", "password": "pass1234"})
-    rO = await client.post("/api/auth/login", json={"username": "owner3", "password": "pass1234"})
+    rO = await client.post("/api/auth/login", json={"email": "owner3@x.com", "password": "pass1234"})
     headers_owner = {"Authorization": f"Bearer {_token(rO)}"}
 
     await client.post("/api/auth/register", json={"username": "thief3", "email": "thief3@x.com", "password": "pass1234"})
-    rT = await client.post("/api/auth/login", json={"username": "thief3", "password": "pass1234"})
+    rT = await client.post("/api/auth/login", json={"email": "thief3@x.com", "password": "pass1234"})
     headers_thief = {"Authorization": f"Bearer {_token(rT)}"}
 
     roll_resp = await client.post("/api/rolls", json={"roll_id": "Mine"}, headers=headers_owner)

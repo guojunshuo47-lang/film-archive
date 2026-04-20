@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 import uuid
 
@@ -28,6 +28,11 @@ class UserLogin(BaseModel):
     # Accept either username or email
     username: Optional[str] = None
     email: Optional[EmailStr] = None
+    password: str
+
+
+class UserLoginEmail(BaseModel):
+    email: str
     password: str
 
 
@@ -143,7 +148,7 @@ class PhotoBase(BaseModel):
 
 
 class PhotoCreate(PhotoBase):
-    roll_id: int
+    roll_id: Union[int, str]  # DB integer id or user-visible string (e.g. "Roll-001")
     image_url: Optional[str] = None
     thumbnail_url: Optional[str] = None
     exif_data: Optional[Dict[str, Any]] = None
