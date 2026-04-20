@@ -59,7 +59,7 @@ async def list_rolls(
         for roll, photo_count in rows
     ]
 
-    return {"data": [r.model_dump() for r in roll_responses]}
+    return {"data": [r.model_dump(mode="json") for r in roll_responses]}
 
 
 @router.post("", response_model=RollResponse, status_code=status.HTTP_201_CREATED)
