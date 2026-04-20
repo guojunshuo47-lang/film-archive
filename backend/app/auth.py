@@ -125,3 +125,14 @@ async def authenticate_user(db: AsyncSession, username: str, password: str) -> O
     if not verify_password(password, user.hashed_password):
         return None
     return user
+
+
+async def authenticate_user_by_email(db: AsyncSession, email: str, password: str) -> Optional[User]:
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        return None
+    if not verify_password(password, user.hashed_password):
+        return None
+    return user

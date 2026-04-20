@@ -16,7 +16,7 @@ from app.auth import get_current_user
 router = APIRouter(prefix="/rolls", tags=["rolls"])
 
 
-@router.get("", response_model=RollListResponse)
+@router.get("")
 async def list_rolls(
     status: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
@@ -59,7 +59,7 @@ async def list_rolls(
         for roll, photo_count in rows
     ]
 
-    return RollListResponse(items=roll_responses, total=len(roll_responses))
+    return {"data": [r.model_dump() for r in roll_responses]}
 
 
 @router.post("", response_model=RollResponse, status_code=status.HTTP_201_CREATED)
