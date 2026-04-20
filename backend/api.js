@@ -41,7 +41,7 @@ const Auth = {
 
     setTokens(accessToken, refreshToken) {
         localStorage.setItem('access_token', accessToken);
-        localStorage.setItem('refresh_token', refreshToken);
+        if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
     },
 
     clearTokens() {
@@ -102,57 +102,27 @@ const API = {
                 mode: 'cors'
             });
 
-            // Handle token expiration
-            if (response.status === 401 && Auth.getRefreshToken()) {
-                const refreshed = await this.refreshToken();
-                if (refreshed) {
-                    // Retry request with new token
-                    headers['Authorization'] = `Bearer ${Auth.getToken()}`;
-                    const retryResponse = await fetch(url, { ...options, headers, mode: 'cors' });
-                    if (!retryResponse.ok) {
-                        const error = await retryResponse.json().catch(() => ({ detail: 'Request failed' }));
-                        throw new Error(error.detail || `HTTP ${retryResponse.status}`);
-                    }
-                    return retryResponse.json();
+            if (response.status === 401) {
+                if (Auth.getToken()) {
+                    // Authenticated request expired — clear session and redirect
+                    Auth.clearTokens();
+                    if (typeof showLoginPage === 'function') showLoginPage();
+                    throw new Error('登录已过期，请重新登录');
                 }
+                // Unauthenticated request (e.g. login with wrong password)
+                const errBody = await response.json().catch(() => ({}));
+                throw new Error(errBody.error || '邮箱或密码错误');
             }
 
             if (!response.ok) {
-                const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-                throw new Error(error.detail || `HTTP ${response.status}`);
+                const error = await response.json().catch(() => ({ error: 'Request failed' }));
+                throw new Error(error.error || `HTTP ${response.status}`);
             }
 
             return response.json();
         } catch (error) {
             console.error('API Error:', error);
             throw error;
-        }
-    },
-
-    async refreshToken() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                },
-                body: JSON.stringify({ refresh_token: Auth.getRefreshToken() }),
-                mode: 'cors'
-            });
-
-            if (!response.ok) {
-                Auth.clearTokens();
-                return false;
-            }
-
-            const data = await response.json();
-            Auth.setTokens(data.access_token, data.refresh_token);
-            return true;
-        } catch {
-            Auth.clearTokens();
-            return false;
         }
     },
 
@@ -165,22 +135,28 @@ const API = {
             });
         },
 
-        async login(username, password) {
+        async login(email, password) {
             const data = await API.request('/auth/login', {
                 method: 'POST',
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({ email, password })
             });
-            Auth.setTokens(data.access_token, data.refresh_token);
+            const session = data.data?.session;
+            if (!session?.access_token) throw new Error('登录失败：服务器未返回令牌');
+            Auth.setTokens(session.access_token, session.refresh_token);
             return data;
         },
 
         async me() {
-            const user = await API.request('/auth/me');
+            const response = await API.request('/auth/me');
+            const user = response.data?.user ?? response;
             Auth.setUser(user);
             return user;
         },
 
-        logout() {
+        async logout() {
+            try {
+                await API.request('/auth/logout', { method: 'POST' });
+            } catch (_) { /* clear locally regardless */ }
             Auth.clearTokens();
         }
     },
@@ -190,7 +166,7 @@ const API = {
         async list(status = null) {
             const params = status ? `?status=${status}` : '';
             const data = await API.request(`/rolls${params}`);
-            return data.items || [];
+            return data.data || [];
         },
 
         async create(rollData) {
@@ -218,32 +194,45 @@ const API = {
         }
     },
 
-    // ============= Photo Endpoints =============
+    // ============= Photo Endpoints (flat) =============
     photos: {
         async list(rollId) {
-            const data = await API.request(`/rolls/${rollId}/photos`);
-            return data.items || [];
+            const params = rollId ? `?roll_id=${rollId}` : '';
+            const data = await API.request(`/photos${params}`);
+            return data.data || [];
         },
 
+        // rollId kept for backward-compatible call sites; ignored by the flat API
         async create(rollId, photoData) {
-            return API.request(`/rolls/${rollId}/photos`, {
+            return API.request('/photos', {
                 method: 'POST',
-                body: JSON.stringify(photoData)
+                body: JSON.stringify({ roll_id: rollId, ...photoData })
             });
         },
 
         async update(rollId, photoId, photoData) {
-            return API.request(`/rolls/${rollId}/photos/${photoId}`, {
+            return API.request(`/photos/${photoId}`, {
                 method: 'PUT',
                 body: JSON.stringify(photoData)
             });
         },
 
         async delete(rollId, photoId) {
-            return API.request(`/rolls/${rollId}/photos/${photoId}`, {
+            return API.request(`/photos/${photoId}`, {
                 method: 'DELETE'
             });
         }
+    },
+
+    // ============= Search & Stats =============
+    async search(query) {
+        const data = await API.request(`/search?q=${encodeURIComponent(query)}`);
+        return data.data || { rolls: [], photos: [] };
+    },
+
+    async stats() {
+        const data = await API.request('/stats');
+        return data.data || {};
     },
 
     // ============= Sync Endpoints =============
@@ -255,8 +244,15 @@ const API = {
             });
         },
 
-        async export() {
-            return API.request('/sync/export');
+        async fetchAll() {
+            const [rollsRes, photosRes] = await Promise.all([
+                API.request('/rolls'),
+                API.request('/photos')
+            ]);
+            return {
+                rolls: rollsRes.data || [],
+                photos: photosRes.data || []
+            };
         }
     }
 };
@@ -264,36 +260,32 @@ const API = {
 // ============= Auth UI Management =============
 const AuthUI = {
     showLoginModal() {
-        // Check if backend is available first
-        API.checkHealth().then(available => {
-            if (!available) {
-                alert('后端服务暂时无法连接，请稍后重试');
-                return;
-            }
-            document.getElementById('auth-modal').classList.remove('hidden');
-            document.getElementById('login-form').classList.remove('hidden');
-            document.getElementById('register-form').classList.add('hidden');
-        });
+        if (typeof showLoginPage === 'function') {
+            showLoginPage();
+        }
     },
 
     showRegisterModal() {
-        document.getElementById('auth-modal').classList.remove('hidden');
-        document.getElementById('login-form').classList.add('hidden');
-        document.getElementById('register-form').classList.remove('hidden');
+        if (typeof showLoginPage === 'function') {
+            showLoginPage();
+        }
+        if (typeof switchAuthTab === 'function') {
+            switchAuthTab('register');
+        }
     },
 
     hideModal() {
-        document.getElementById('auth-modal').classList.add('hidden');
+        document.getElementById('auth-modal')?.classList.add('hidden');
     },
 
     switchToRegister() {
-        document.getElementById('login-form').classList.add('hidden');
-        document.getElementById('register-form').classList.remove('hidden');
+        document.getElementById('login-form')?.classList.add('hidden');
+        document.getElementById('register-form')?.classList.remove('hidden');
     },
 
     switchToLogin() {
-        document.getElementById('register-form').classList.add('hidden');
-        document.getElementById('login-form').classList.remove('hidden');
+        document.getElementById('register-form')?.classList.add('hidden');
+        document.getElementById('login-form')?.classList.remove('hidden');
     },
 
     updateUI() {
@@ -307,7 +299,7 @@ const AuthUI = {
             if (userInfo) {
                 userInfo.classList.remove('hidden');
                 userInfo.innerHTML = `
-                    <span class="text-sm text-gray-600">${user.username}</span>
+                    <span class="text-sm text-gray-600">${user.username || user.email || '用户'}</span>
                     <button onclick="AuthUI.logout()" class="btn-archive-ghost btn-sm" style="color:var(--danger)">退出</button>
                 `;
             }
@@ -319,70 +311,8 @@ const AuthUI = {
         }
     },
 
-    async login() {
-        const username = document.getElementById('login-username').value;
-        const password = document.getElementById('login-password').value;
-
-        if (!username || !password) {
-            alert('请输入用户名和密码');
-            return;
-        }
-
-        try {
-            await API.auth.login(username, password);
-            const user = await API.auth.me();
-            Auth.setUser(user);
-            this.hideModal();
-            this.updateUI();
-            showToast('登录成功');
-
-            // Sync local data to server
-            await this.syncToServer();
-        } catch (error) {
-            alert('登录失败: ' + error.message);
-        }
-    },
-
-    async register() {
-        const username = document.getElementById('reg-username').value;
-        const email = document.getElementById('reg-email').value;
-        const password = document.getElementById('reg-password').value;
-        const confirmPassword = document.getElementById('reg-password-confirm').value;
-
-        if (!username || !email || !password) {
-            alert('请填写所有字段');
-            return;
-        }
-
-        if (password !== confirmPassword) {
-            alert('两次输入的密码不一致');
-            return;
-        }
-
-        if (password.length < 6) {
-            alert('密码至少需要6个字符');
-            return;
-        }
-
-        try {
-            await API.auth.register(username, email, password);
-            // Auto login after registration
-            await API.auth.login(username, password);
-            const user = await API.auth.me();
-            Auth.setUser(user);
-            this.hideModal();
-            this.updateUI();
-            showToast('注册成功，已自动登录');
-
-            // Sync local data to server
-            await this.syncToServer();
-        } catch (error) {
-            alert('注册失败: ' + error.message);
-        }
-    },
-
-    logout() {
-        API.auth.logout();
+    async logout() {
+        await API.auth.logout();
         this.updateUI();
         showToast('已退出登录');
     },
@@ -420,8 +350,8 @@ const AuthUI = {
 
             if (rolls.length > 0 || photos.length > 0) {
                 const result = await API.sync.upload(rolls, photos);
-                if (result.success) {
-                    showToast(`同步成功：${result.synced_rolls} 个胶卷, ${result.synced_photos} 张照片`);
+                if (result.data) {
+                    showToast(`同步成功：${result.data.rolls} 个胶卷, ${result.data.photos} 张照片`);
                 }
             }
         } catch (error) {
@@ -434,19 +364,19 @@ const AuthUI = {
         if (!Auth.isAuthenticated()) return;
 
         try {
-            const data = await API.sync.export();
+            const data = await API.sync.fetchAll();
 
             // Convert API format to local storage format
             const rolls = data.rolls.map(r => ({
-                id: r.roll_id,
-                name: r.custom_data?.name || r.roll_id,
+                id: r.roll_id || r.id,
+                name: r.custom_data?.name || r.roll_id || r.id,
                 filmType: r.film_stock,
                 camera: r.camera,
                 iso: r.iso,
                 totalFrames: r.total_frames,
                 status: r.status,
                 notes: r.note,
-                dateCreated: r.custom_data?.dateCreated || r.date_created,
+                dateCreated: r.custom_data?.dateCreated || r.date_created || r.created_at,
                 dateFinished: r.custom_data?.dateFinished || r.date_finished,
                 dateDeveloped: r.custom_data?.dateDeveloped || r.date_developed
             }));
