@@ -119,21 +119,11 @@ async def sync_data(
 
         await db.commit()
 
-        return SyncResponse(
-            success=True,
-            message="Data synced successfully",
-            synced_rolls=synced_rolls,
-            synced_photos=synced_photos
-        )
+        return {"data": {"rolls": synced_rolls, "photos": synced_photos}}
 
     except Exception as e:
         await db.rollback()
-        return SyncResponse(
-            success=False,
-            message=f"Sync failed: {str(e)}",
-            synced_rolls=synced_rolls,
-            synced_photos=synced_photos
-        )
+        raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")
 
 
 @router.get("/export")

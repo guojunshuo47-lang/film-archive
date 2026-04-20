@@ -28,6 +28,11 @@ class UserLogin(BaseModel):
     password: str
 
 
+class UserLoginEmail(BaseModel):
+    email: str
+    password: str
+
+
 # ============= Token Schemas =============
 
 class Token(BaseModel):
