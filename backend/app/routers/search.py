@@ -39,8 +39,18 @@ async def search(
 
     return {
         "data": {
-            "rolls": [RollResponse.model_validate(r).model_dump() for r in rolls],
-            "photos": [PhotoResponse.model_validate(p).model_dump() for p in photos]
+            "rolls": [
+                RollResponse(
+                    id=r.id, user_id=r.user_id, roll_id=r.roll_id,
+                    film_stock=r.film_stock, camera=r.camera, iso=r.iso,
+                    total_frames=r.total_frames, status=r.status, note=r.note,
+                    date_created=r.date_created, date_finished=r.date_finished,
+                    date_developed=r.date_developed, custom_data=r.custom_data or {},
+                    created_at=r.created_at, updated_at=r.updated_at, photo_count=0
+                ).model_dump(mode="json")
+                for r in rolls
+            ],
+            "photos": [PhotoResponse.model_validate(p).model_dump(mode="json") for p in photos]
         }
     }
 
