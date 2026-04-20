@@ -1,0 +1,12 @@
+{
+  "name": "film-archive",
+  "version": "2.3.0",
+  "description": "Film archive manager — static frontend",
+  "scripts": {
+    "build": "mkdir -p dist && cp index.html dist/ && cp nginx.conf dist/ && cp -r backend/api.js dist/",
+    "start": "npx serve .",
+    "test": "echo \"No frontend tests\" && exit 0"
+  },
+  "keywords": ["film", "archive", "photography"],
+  "license": "MIT"
+}
