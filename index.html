@@ -1011,8 +1011,8 @@
                 <div id="lp-login-form">
                     <div class="flex flex-col gap-4">
                         <div class="login-field">
-                            <label>用户名</label>
-                            <input type="text" id="lp-username" placeholder="输入用户名" autocomplete="username">
+                            <label>邮箱</label>
+                            <input type="email" id="lp-email" placeholder="your@email.com" autocomplete="email">
                         </div>
                         <div class="login-field">
                             <label>密码</label>
@@ -3007,14 +3007,14 @@
 
         async function doLogin() {
             const btn = document.getElementById('lp-login-btn');
-            const username = document.getElementById('lp-username').value.trim();
+            const email = document.getElementById('lp-email').value.trim();
             const password = document.getElementById('lp-password').value;
-            if (!username || !password) { setAuthError('请输入用户名和密码'); return; }
+            if (!email || !password) { setAuthError('请输入邮箱和密码'); return; }
             btn.disabled = true;
             btn.textContent = '登录中…';
             setAuthError('');
             try {
-                await API.auth.login(username, password);
+                await API.auth.login(email, password);
                 const user = await API.auth.me();
                 Auth.setUser(user);
                 AuthUI.updateUI();
@@ -3043,7 +3043,7 @@
             setAuthError('');
             try {
                 await API.auth.register(username, email, password);
-                await API.auth.login(username, password);
+                await API.auth.login(email, password);
                 const user = await API.auth.me();
                 Auth.setUser(user);
                 AuthUI.updateUI();
