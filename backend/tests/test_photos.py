@@ -7,7 +7,7 @@ import pytest
 async def _create_roll(client, roll_id="Roll-001"):
     resp = await client.post("/api/rolls", json={"roll_id": roll_id})
     assert resp.status_code == 201, resp.text
-    return resp.json()
+    return resp.json()["data"]
 
 
 async def _create_photo(client, roll_db_id: int, frame_number: int = 1, **extra):
@@ -15,6 +15,10 @@ async def _create_photo(client, roll_db_id: int, frame_number: int = 1, **extra)
     resp = await client.post(f"/api/rolls/{roll_db_id}/photos", json=payload)
     assert resp.status_code == 201, resp.text
     return resp.json()
+
+
+def _token(login_resp):
+    return login_resp.json()["data"]["session"]["access_token"]
 
 
 # ── GET /api/rolls/{roll_id}/photos ──────────────────────────────────────────
@@ -50,14 +54,14 @@ async def test_list_photos_roll_not_found_returns_404(auth_client):
 async def test_list_photos_other_users_roll_returns_404(client):
     await client.post("/api/auth/register", json={"username": "pOwner", "email": "po@x.com", "password": "pass1234"})
     rO = await client.post("/api/auth/login", json={"username": "pOwner", "password": "pass1234"})
-    headers_owner = {"Authorization": f"Bearer {rO.json()['access_token']}"}
+    headers_owner = {"Authorization": f"Bearer {_token(rO)}"}
 
     await client.post("/api/auth/register", json={"username": "pThief", "email": "pt@x.com", "password": "pass1234"})
     rT = await client.post("/api/auth/login", json={"username": "pThief", "password": "pass1234"})
-    headers_thief = {"Authorization": f"Bearer {rT.json()['access_token']}"}
+    headers_thief = {"Authorization": f"Bearer {_token(rT)}"}
 
     roll_resp = await client.post("/api/rolls", json={"roll_id": "PrivateRoll"}, headers=headers_owner)
-    roll_id = roll_resp.json()["id"]
+    roll_id = roll_resp.json()["data"]["id"]
 
     resp = await client.get(f"/api/rolls/{roll_id}/photos", headers=headers_thief)
     assert resp.status_code == 404
@@ -143,14 +147,14 @@ async def test_create_photo_roll_not_found_returns_404(auth_client):
 async def test_create_photo_other_users_roll_returns_404(client):
     await client.post("/api/auth/register", json={"username": "cpOwner", "email": "cpo@x.com", "password": "pass1234"})
     rO = await client.post("/api/auth/login", json={"username": "cpOwner", "password": "pass1234"})
-    headers_owner = {"Authorization": f"Bearer {rO.json()['access_token']}"}
+    headers_owner = {"Authorization": f"Bearer {_token(rO)}"}
 
     await client.post("/api/auth/register", json={"username": "cpThief", "email": "cpt@x.com", "password": "pass1234"})
     rT = await client.post("/api/auth/login", json={"username": "cpThief", "password": "pass1234"})
-    headers_thief = {"Authorization": f"Bearer {rT.json()['access_token']}"}
+    headers_thief = {"Authorization": f"Bearer {_token(rT)}"}
 
     roll_resp = await client.post("/api/rolls", json={"roll_id": "PvtRoll"}, headers=headers_owner)
-    roll_id = roll_resp.json()["id"]
+    roll_id = roll_resp.json()["data"]["id"]
 
     resp = await client.post(
         f"/api/rolls/{roll_id}/photos",
@@ -243,7 +247,6 @@ async def test_update_photo_wrong_roll_returns_404(auth_client):
     roll_b = await _create_roll(auth_client, "WR-Roll-B")
     photo = await _create_photo(auth_client, roll_a["id"])
 
-    # Photo belongs to roll A but we target roll B
     resp = await auth_client.put(
         f"/api/rolls/{roll_b['id']}/photos/{photo['id']}",
         json={"note": "mismatch"},
@@ -254,14 +257,14 @@ async def test_update_photo_wrong_roll_returns_404(auth_client):
 async def test_update_photo_other_users_photo_returns_404(client):
     await client.post("/api/auth/register", json={"username": "upOwner", "email": "upo@x.com", "password": "pass1234"})
     rO = await client.post("/api/auth/login", json={"username": "upOwner", "password": "pass1234"})
-    headers_owner = {"Authorization": f"Bearer {rO.json()['access_token']}"}
+    headers_owner = {"Authorization": f"Bearer {_token(rO)}"}
 
     await client.post("/api/auth/register", json={"username": "upThief", "email": "upt@x.com", "password": "pass1234"})
     rT = await client.post("/api/auth/login", json={"username": "upThief", "password": "pass1234"})
-    headers_thief = {"Authorization": f"Bearer {rT.json()['access_token']}"}
+    headers_thief = {"Authorization": f"Bearer {_token(rT)}"}
 
     roll_resp = await client.post("/api/rolls", json={"roll_id": "OwnedRoll"}, headers=headers_owner)
-    roll_id = roll_resp.json()["id"]
+    roll_id = roll_resp.json()["data"]["id"]
     photo_resp = await client.post(
         f"/api/rolls/{roll_id}/photos",
         json={"roll_id": roll_id, "frame_number": 1},
@@ -314,14 +317,14 @@ async def test_delete_photo_wrong_roll_returns_404(auth_client):
 async def test_delete_photo_other_users_photo_returns_404(client):
     await client.post("/api/auth/register", json={"username": "dpOwner", "email": "dpo@x.com", "password": "pass1234"})
     rO = await client.post("/api/auth/login", json={"username": "dpOwner", "password": "pass1234"})
-    headers_owner = {"Authorization": f"Bearer {rO.json()['access_token']}"}
+    headers_owner = {"Authorization": f"Bearer {_token(rO)}"}
 
     await client.post("/api/auth/register", json={"username": "dpThief", "email": "dpt@x.com", "password": "pass1234"})
     rT = await client.post("/api/auth/login", json={"username": "dpThief", "password": "pass1234"})
-    headers_thief = {"Authorization": f"Bearer {rT.json()['access_token']}"}
+    headers_thief = {"Authorization": f"Bearer {_token(rT)}"}
 
     roll_resp = await client.post("/api/rolls", json={"roll_id": "MyRoll"}, headers=headers_owner)
-    roll_id = roll_resp.json()["id"]
+    roll_id = roll_resp.json()["data"]["id"]
     photo_resp = await client.post(
         f"/api/rolls/{roll_id}/photos",
         json={"roll_id": roll_id, "frame_number": 1},

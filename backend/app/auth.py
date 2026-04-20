@@ -116,8 +116,12 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
     return current_user
 
 
-async def authenticate_user(db: AsyncSession, username: str, password: str) -> Optional[User]:
-    result = await db.execute(select(User).where(User.username == username))
+async def authenticate_user(db: AsyncSession, username_or_email: str, password: str) -> Optional[User]:
+    # Try email lookup first, then username
+    if "@" in username_or_email:
+        result = await db.execute(select(User).where(User.email == username_or_email))
+    else:
+        result = await db.execute(select(User).where(User.username == username_or_email))
     user = result.scalar_one_or_none()
 
     if not user:

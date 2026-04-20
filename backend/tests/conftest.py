@@ -58,6 +58,6 @@ async def auth_client(client):
         "/api/auth/login",
         json={"username": "testuser", "password": "testpass123"},
     )
-    token = resp.json()["access_token"]
+    token = resp.json()["data"]["session"]["access_token"]
     client.headers["Authorization"] = f"Bearer {token}"
     return client

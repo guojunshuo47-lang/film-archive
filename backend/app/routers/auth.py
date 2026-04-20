@@ -6,7 +6,10 @@ from sqlalchemy import select
 
 from app.database import get_db
 from app.models import User
-from app.schemas import UserCreate, UserResponse, UserLogin, Token, TokenRefresh, TokenPayload
+from app.schemas import (
+    UserCreate, UserResponse, UserLogin, Token, TokenRefresh, TokenPayload,
+    LoginResponse, LoginData, SessionData, MeResponse, MeData
+)
 from app.auth import (
     authenticate_user,
     create_access_token,
@@ -26,7 +29,6 @@ security = HTTPBearer()
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     """用户注册"""
-    # 检查用户名是否已存在
     result = await db.execute(select(User).where(User.username == user_data.username))
     if result.scalar_one_or_none():
         raise HTTPException(
@@ -34,7 +36,6 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
             detail="Username already registered"
         )
 
-    # 检查邮箱是否已存在
     result = await db.execute(select(User).where(User.email == user_data.email))
     if result.scalar_one_or_none():
         raise HTTPException(
@@ -42,7 +43,6 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
             detail="Email already registered"
         )
 
-    # 创建新用户
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
         username=user_data.username,
@@ -56,25 +56,35 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     return new_user
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=LoginResponse)
 async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
-    """用户登录"""
-    user = await authenticate_user(db, credentials.username, credentials.password)
+    """用户登录 — 支持 email 或 username"""
+    identifier = credentials.email or credentials.username
+    if not identifier:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email or username is required"
+        )
+
+    user = await authenticate_user(db, identifier, credentials.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Invalid credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
     access_token = create_access_token(user.id)
     refresh_token = create_refresh_token(user.id)
 
-    return Token(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type="bearer",
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    return LoginResponse(
+        data=LoginData(
+            user=UserResponse.model_validate(user),
+            session=SessionData(
+                access_token=access_token,
+                refresh_token=refresh_token,
+            )
+        )
     )
 
 
@@ -93,7 +103,6 @@ async def refresh_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Verify the user still exists and is active
     result = await db.execute(select(User).where(User.id == payload.sub))
     user = result.scalar_one_or_none()
     if user is None or not user.is_active:
@@ -114,13 +123,15 @@ async def refresh_token(
     )
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=MeResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     """获取当前用户信息"""
-    return current_user
+    return MeResponse(
+        data=MeData(user=UserResponse.model_validate(current_user))
+    )
 
 
 @router.post("/logout")
 async def logout():
-    """登出（客户端需要清除token）"""
-    return {"message": "Successfully logged out"}
+    """登出"""
+    return {"success": True}

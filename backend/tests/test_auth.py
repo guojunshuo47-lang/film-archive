@@ -136,11 +136,25 @@ async def test_login_success_returns_token_bundle(client):
         json={"username": "frank", "password": "pass123"},
     )
     assert resp.status_code == 200
-    data = resp.json()
-    assert "access_token" in data
-    assert "refresh_token" in data
-    assert data["token_type"] == "bearer"
-    assert isinstance(data["expires_in"], int)
+    data = resp.json()["data"]
+    assert "access_token" in data["session"]
+    assert "refresh_token" in data["session"]
+    assert data["session"]["token_type"] == "bearer"
+    assert "user" in data
+    assert data["user"]["username"] == "frank"
+
+
+async def test_login_with_email_succeeds(client):
+    await client.post(
+        "/api/auth/register",
+        json={"username": "frankemail", "email": "frankemail@example.com", "password": "pass123"},
+    )
+    resp = await client.post(
+        "/api/auth/login",
+        json={"email": "frankemail@example.com", "password": "pass123"},
+    )
+    assert resp.status_code == 200
+    assert "access_token" in resp.json()["data"]["session"]
 
 
 async def test_login_wrong_password_returns_401(client):
@@ -174,7 +188,7 @@ async def test_refresh_with_valid_refresh_token_returns_new_tokens(client):
         "/api/auth/login",
         json={"username": "hank", "password": "pass123"},
     )
-    refresh_token = login_resp.json()["refresh_token"]
+    refresh_token = login_resp.json()["data"]["session"]["refresh_token"]
 
     resp = await client.post("/api/auth/refresh", json={"refresh_token": refresh_token})
     assert resp.status_code == 200
@@ -192,8 +206,7 @@ async def test_refresh_with_access_token_returns_401(client):
         "/api/auth/login",
         json={"username": "ivy", "password": "pass123"},
     )
-    # Use access token where refresh token is expected
-    access_token = login_resp.json()["access_token"]
+    access_token = login_resp.json()["data"]["session"]["access_token"]
     resp = await client.post("/api/auth/refresh", json={"refresh_token": access_token})
     assert resp.status_code == 401
 
@@ -213,9 +226,8 @@ async def test_refresh_for_deleted_user_returns_401(client, db_session):
         "/api/auth/login",
         json={"username": "jack", "password": "pass123"},
     )
-    refresh_token = login_resp.json()["refresh_token"]
+    refresh_token = login_resp.json()["data"]["session"]["refresh_token"]
 
-    # Delete the user from the database
     result = await db_session.execute(select(User).where(User.username == "jack"))
     user = result.scalar_one()
     await db_session.delete(user)
@@ -235,9 +247,8 @@ async def test_refresh_for_inactive_user_returns_401(client, db_session):
         "/api/auth/login",
         json={"username": "kate", "password": "pass123"},
     )
-    refresh_token = login_resp.json()["refresh_token"]
+    refresh_token = login_resp.json()["data"]["session"]["refresh_token"]
 
-    # Deactivate the user
     result = await db_session.execute(select(User).where(User.username == "kate"))
     user = result.scalar_one()
     user.is_active = False
@@ -252,10 +263,10 @@ async def test_refresh_for_inactive_user_returns_401(client, db_session):
 async def test_get_me_returns_current_user(auth_client):
     resp = await auth_client.get("/api/auth/me")
     assert resp.status_code == 200
-    data = resp.json()
-    assert data["username"] == "testuser"
-    assert data["email"] == "test@example.com"
-    assert "hashed_password" not in data
+    user = resp.json()["data"]["user"]
+    assert user["username"] == "testuser"
+    assert user["email"] == "test@example.com"
+    assert "hashed_password" not in user
 
 
 async def test_get_me_without_token_returns_401(client):
@@ -270,7 +281,7 @@ async def test_get_me_with_invalid_token_returns_401(client):
 
 # ── POST /api/auth/logout ─────────────────────────────────────────────────────
 
-async def test_logout_returns_success_message(client):
+async def test_logout_returns_success(client):
     resp = await client.post("/api/auth/logout")
     assert resp.status_code == 200
-    assert "message" in resp.json()
+    assert resp.json()["success"] is True
