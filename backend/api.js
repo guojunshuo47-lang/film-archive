@@ -318,45 +318,88 @@ const AuthUI = {
     },
 
     async syncToServer() {
-        if (!Auth.isAuthenticated()) return;
+        if (!Auth.isAuthenticated()) return { success: false };
 
-        try {
-            // Convert local storage format to API format
-            const rolls = storage.rolls.map(r => ({
-                roll_id: r.id,
-                film_stock: r.filmType,
-                camera: r.camera,
-                iso: r.iso,
-                total_frames: r.totalFrames || 36,
-                status: r.status || 'shooting',
-                note: r.notes,
-                custom_data: {
-                    name: r.name,
-                    dateCreated: r.dateCreated,
-                    dateFinished: r.dateFinished,
-                    dateDeveloped: r.dateDeveloped
-                }
-            }));
+        // Convert local storage format to API format
+        const rolls = storage.rolls.map(r => ({
+            roll_id: String(r.id),
+            film_stock: r.filmType || r.filmId || null,
+            camera: r.camera || null,
+            iso: r.iso ? Number(r.iso) : null,
+            total_frames: r.totalFrames || r.frames || 36,
+            status: r.status || 'shooting',
+            note: r.notes || r.note || null,
+            custom_data: {
+                name: r.name,
+                format: r.format,
+                artistId: r.artistId,
+                dateCreated: r.dateCreated || r.date,
+                dateFinished: r.dateFinished,
+                dateDeveloped: r.dateDeveloped
+            }
+        }));
 
-            const photos = storage.scans.map(s => ({
-                roll_id: s.rollId,
-                frame_number: s.frameNumber,
-                image_url: s.imageUrl,
-                thumbnail_url: s.thumbnailUrl,
-                note: s.notes,
-                exif_data: s.exif || {},
+        // Only sync photos that have a real URL (skip base64-only local previews)
+        const photos = storage.scans
+            .filter(s => s.imageUrl || s.image_url)
+            .map(s => ({
+                roll_id: String(s.rollId),
+                frame_number: s.frameNumber || s.index || 1,
+                image_url: s.imageUrl || s.image_url,
+                thumbnail_url: s.thumbnailUrl || s.thumbnail_url || null,
+                note: s.notes || s.note || null,
+                rating: s.rating || null,
+                exif_data: s.exif || s.exif_data || {},
                 tags: s.tags || []
             }));
 
-            if (rolls.length > 0 || photos.length > 0) {
-                const result = await API.sync.upload(rolls, photos);
-                if (result.data) {
-                    showToast(`同步成功：${result.data.rolls} 个胶卷, ${result.data.photos} 张照片`);
-                }
+        if (rolls.length === 0 && photos.length === 0) {
+            return { success: true, synced_rolls: 0, synced_photos: 0 };
+        }
+        return API.sync.upload(rolls, photos);
+    },
+
+    async smartSync() {
+        if (!Auth.isAuthenticated()) return;
+
+        const btn = document.getElementById('sync-button');
+        if (btn) btn.disabled = true;
+
+        try {
+            showToast('正在上传数据...');
+
+            // Phase 1: upload local data
+            const uploadResult = await this.syncToServer();
+            if (!uploadResult.success) {
+                showToast('上传失败，请重试');
+                return;
             }
+
+            // Phase 2: fetch server state for integrity check
+            const serverData = await API.sync.fetchAll();
+
+            // Compare local vs server
+            const serverRollIds = new Set(serverData.rolls.map(r => String(r.roll_id || r.id)));
+            const missingRolls = storage.rolls.filter(r => !serverRollIds.has(String(r.id)));
+            const localSyncablePhotos = storage.scans.filter(s => s.imageUrl || s.image_url).length;
+            const serverPhotos = serverData.photos.length;
+
+            if (missingRolls.length === 0 && localSyncablePhotos <= serverPhotos) {
+                showToast(`同步完成 ✓  服务器共 ${serverData.rolls.length} 胶卷 / ${serverData.photos.length} 张照片`, 4000);
+            } else {
+                const issues = [];
+                if (missingRolls.length > 0) issues.push(`${missingRolls.length} 个胶卷未同步`);
+                if (localSyncablePhotos > serverPhotos) {
+                    issues.push(`${localSyncablePhotos - serverPhotos} 张照片缺失`);
+                }
+                showToast(`同步完成，但完整性检查发现问题：${issues.join('，')}`, 5000);
+            }
+
         } catch (error) {
-            console.error('Sync failed:', error);
+            console.error('Smart sync failed:', error);
             showToast('同步失败: ' + error.message);
+        } finally {
+            if (btn) btn.disabled = false;
         }
     },
 
@@ -366,7 +409,6 @@ const AuthUI = {
         try {
             const data = await API.sync.fetchAll();
 
-            // Convert API format to local storage format
             const rolls = data.rolls.map(r => ({
                 id: r.roll_id || r.id,
                 name: r.custom_data?.name || r.roll_id || r.id,
@@ -393,12 +435,10 @@ const AuthUI = {
                 rating: p.rating
             }));
 
-            // Merge with existing data (server data takes precedence)
             storage.rolls = rolls;
             storage.scans = scans;
             saveStorage();
 
-            // Refresh UI
             updateStats();
             populateSelects();
             populatePreviewRollSelect();

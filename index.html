@@ -1080,7 +1080,7 @@
                     <span class="hidden sm:inline header-btn-text">登录</span>
                 </button>
                 <div id="user-info" class="hidden items-center gap-2"></div>
-                <button id="sync-button" onclick="AuthUI.syncFromServer()" class="hidden btn-archive-ghost flex items-center gap-2" title="从服务器同步">
+                <button id="sync-button" onclick="AuthUI.smartSync()" class="hidden btn-archive-ghost flex items-center gap-2" title="上传本地数据并检查完整性">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="23 4 23 10 17 10"></polyline>
                         <polyline points="1 20 1 14 7 14"></polyline>
@@ -1731,11 +1731,11 @@
             updateStats();
         }
 
-        function showToast(message) {
+        function showToast(message, duration = 3000) {
             const toast = DOM.toast;
             toast.textContent = message;
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
+            setTimeout(() => toast.classList.remove('show'), duration);
         }
 
         // Navigation
@@ -2584,17 +2584,17 @@
                         fileInput.value = '';
                         updateStats();
 
-                        // Auto switch to edit tab after short delay
+                        // Auto switch to photo preview after short delay
                         setTimeout(() => {
+                            showSection('works');
                             switchTab('edit');
                             // Auto select the roll in preview
                             const previewSelect = document.getElementById('preview-roll-select');
                             if (previewSelect) {
                                 previewSelect.value = rollId;
                                 onRollSelectChange();
-                                showToast(`已自动加载胶卷预览`);
                             }
-                        }, 800);
+                        }, 500);
                     }
                 };
                 reader.readAsDataURL(file);
